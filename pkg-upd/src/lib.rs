@@ -14,4 +14,5 @@
 
 pub mod logging;
 pub mod parsers;
+pub mod rules;
 pub mod runners;
