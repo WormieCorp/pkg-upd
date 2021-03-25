@@ -1,0 +1,11 @@
+[package]
+name = "pkg-web"
+version = "0.1.0"
+authors = ["AdmiringWorm <kim.nordmo@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+lazy_static = "1.4.0"
+log = "0.4.14"
+reqwest = {version = "0.11.2", features = ["blocking"] }
+select = "0.5.0"

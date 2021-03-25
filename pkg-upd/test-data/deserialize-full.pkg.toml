@@ -25,7 +25,7 @@ description = { from = "./astyle.md", skip_start = 2, skip_end = 1 }
 [updater.chocolatey]
 embedded = true
 type = "Archive"
-parse_url = { url = "https://sourceforge.net/projects/astyle/files/astyle/", regex = '''astyle( |%30)(?P<version>[\d\.]+)/$''' }
+parse_url = { url = "https://sourceforge.net/projects/astyle/files/astyle/", regex = '''astyle( |%20)(?P<version>[\d\.]+)/$''' }
 
 [updater.chocolatey.regexes]
 arch32 = '''windows\.zip/download$'''

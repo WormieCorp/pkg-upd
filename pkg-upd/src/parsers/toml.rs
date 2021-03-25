@@ -292,7 +292,7 @@ mod tests {
                 choco.parse_url = Some(ChocolateyParseUrl::UrlWithRegex {
                     url: Url::parse("https://sourceforge.net/projects/astyle/files/astyle/")
                         .unwrap(),
-                    regex: r"astyle( |%30)(?P<version>[\d\.]+)/$".into(),
+                    regex: r"astyle( |%20)(?P<version>[\d\.]+)/$".into(),
                 });
                 choco.add_regex("arch32", r"windows\.zip/download$");
                 choco
