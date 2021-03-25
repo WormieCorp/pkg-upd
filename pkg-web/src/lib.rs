@@ -16,7 +16,7 @@
 //! let response = request
 //!     .get_html_response("https://httpbin.org/links/5/2")
 //!     .unwrap();
-//! let (parent_link, links) = response.read().unwrap();
+//! let (parent_link, links) = response.read(None).unwrap();
 //!
 //! assert_eq!(links.len(), 4);
 //! ```

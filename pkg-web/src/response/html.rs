@@ -1,10 +1,12 @@
 // Copyright (c) 2021 Kim J. Nordmo and WormieCorp.
 // Licensed under the MIT license. See LICENSE.txt file in the project
 
+use regex::{Captures, Regex};
 use reqwest::blocking::Response;
 use reqwest::{header, Url};
 use select::document::Document;
 use select::predicate::Name;
+use semver::Version;
 
 use crate::response::MIME_TYPES;
 use crate::{LinkElement, LinkType, WebResponse};
@@ -43,19 +45,13 @@ impl WebResponse for HtmlResponse {
     /// itself. This function can return will return an error if the
     /// response do not have a successful status code, or if the reading of the
     /// body fails.
-    fn read(self) -> Result<Self::ResponseContent, Box<dyn std::error::Error>> {
+    fn read(self, re: Option<&str>) -> Result<Self::ResponseContent, Box<dyn std::error::Error>> {
         {
             let response = &self.response;
             if !response.status().is_success() {
                 let response = self.response;
-                match response.error_for_status() {
-                    Err(err) => {
-                        return Err(Box::new(err));
-                    }
-                    Ok(_) => {
-                        unreachable!()
-                    }
-                }
+                response.error_for_status()?;
+                unreachable!();
             }
         }
         let response_url = self.response.url().clone();
@@ -63,7 +59,7 @@ impl WebResponse for HtmlResponse {
         let parent_link = get_parent_link_element(&self);
 
         let body = self.response.text()?;
-        let links = get_link_elements(body, response_url)?;
+        let links = get_link_elements(body, response_url, re)?;
 
         Ok((parent_link, links))
     }
@@ -88,8 +84,15 @@ fn get_parent_link_element<T: WebResponse>(content: &T) -> LinkElement {
 fn get_link_elements(
     text: String,
     parent_url: Url,
+    re: Option<&str>,
 ) -> Result<Vec<LinkElement>, Box<dyn std::error::Error>> {
     let document = Document::from(text.as_str());
+
+    let re = if let Some(re) = re {
+        Some(Regex::new(&re)?)
+    } else {
+        None
+    };
 
     let results = document
         .find(Name("a"))
@@ -111,16 +114,15 @@ fn get_link_elements(
                         parent_url.join(&href)
                     } else {
                         Url::parse(href)
-                    };
-
-                if let Ok(href) = href {
-                    let link_type = LinkType::Unknown;
-
-                    LinkElement::new(href, link_type)
-                } else {
-                    return None;
-                }
+                    }
+                    .ok()?;
+                LinkElement::new(href, LinkType::Unknown)
             };
+
+            if let Some(re) = &re {
+                let capture = re.captures(link.link.as_str())?;
+                link.version = parse_version(capture);
+            }
 
             link.text = n.text().trim().into();
 
@@ -151,6 +153,7 @@ fn get_link_elements(
                 || path.ends_with(".tar")
                 || path.ends_with(".tar.gz")
                 || path.ends_with(".tar.bz2")
+                || path.ends_with(".nupkg")
             {
                 link.link_type = LinkType::Binary;
             }
@@ -162,8 +165,16 @@ fn get_link_elements(
     Ok(results)
 }
 
+fn parse_version(captures: Captures<'_>) -> Option<Version> {
+    lenient_semver::parse(captures.name("version")?.as_str()).ok()
+}
+
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
+    use semver::Version;
+
     use super::*;
     use crate::WebRequest;
 
@@ -173,7 +184,7 @@ mod tests {
         let url = Url::parse("https://httpbin.org/links/4/1").unwrap();
         let response = request.get_html_response(url.as_ref()).unwrap();
 
-        let (parent, links) = response.read().unwrap();
+        let (parent, links) = response.read(None).unwrap();
 
         assert_eq!(parent, LinkElement::new(url, LinkType::Html));
         assert_eq!(
@@ -199,13 +210,99 @@ mod tests {
     }
 
     #[test]
+    fn read_should_extract_version_from_parsed_links() {
+        let request = WebRequest::create();
+        let response = request
+            .get_html_response("https://github.com/MASGAU/MASGAU/releases/tag/v.1.0.6")
+            .unwrap();
+
+        let links = response
+            .read(Some(r"/([v\.]+)(?P<version>[\d\.]+)/.*\.exe$"))
+            .unwrap()
+            .1;
+
+        assert_eq!(links, [
+            LinkElement {
+                link: Url::parse("https://github.com/MASGAU/MASGAU/releases/download/v.1.0.6/MASGAU-1.0.6-Release-Setup.exe").unwrap(),
+                link_type: LinkType::Binary,
+                title: "".into(),
+                text: "MASGAU v.1.0.6 for Windows".into(),
+                attributes: {
+                    let mut map = HashMap::new();
+                    map.insert("rel".into(), "nofollow".into());
+                    map.insert("class".into(), "d-flex flex-items-center min-width-0".into());
+                    map
+                },
+                version: Some(Version::parse("1.0.6").unwrap())
+            }
+        ])
+    }
+
+    #[test]
+    fn read_should_only_return_links_matching_specified_regex() {
+        let request = WebRequest::create();
+        let response = request
+            .get_html_response("https://github.com/GitTools/GitReleaseManager/releases/tag/0.11.0")
+            .unwrap();
+
+        let links = response.read(Some(r"\.nupkg$")).unwrap().1;
+
+        let expected_items = [
+            LinkElement {
+                link: Url::parse("https://github.com/GitTools/GitReleaseManager/releases/download/0.11.0/GitReleaseManager.0.11.0.nupkg".into()).unwrap(),
+                link_type: LinkType::Binary,
+                title: "".into(),
+                text: "GitReleaseManager.0.11.0.nupkg".into(),
+                attributes: {
+                    let mut map = HashMap::new();
+                    map.insert("rel".into(), "nofollow".into());
+                    map.insert("class".into(), "d-flex flex-items-center min-width-0".into());
+
+                    map
+                },
+                version: None
+            },
+            LinkElement {
+                link: Url::parse("https://github.com/GitTools/GitReleaseManager/releases/download/0.11.0/gitreleasemanager.portable.0.11.0.nupkg".into()).unwrap(),
+                link_type: LinkType::Binary,
+                title: "".into(),
+                text: "gitreleasemanager.portable.0.11.0.nupkg".into(),
+                attributes: {
+                    let mut map = HashMap::new();
+                    map.insert("rel".into(), "nofollow".into());
+                    map.insert("class".into(), "d-flex flex-items-center min-width-0".into());
+
+                    map
+                },
+                version: None
+            },
+            LinkElement {
+                link: Url::parse("https://github.com/GitTools/GitReleaseManager/releases/download/0.11.0/GitReleaseManager.Tool.0.11.0.nupkg".into()).unwrap(),
+                link_type: LinkType::Binary,
+                title: "".into(),
+                text: "GitReleaseManager.Tool.0.11.0.nupkg".into(),
+                attributes: {
+                    let mut map = HashMap::new();
+                    map.insert("rel".into(), "nofollow".into());
+                    map.insert("class".into(), "d-flex flex-items-center min-width-0".into());
+
+                    map
+                },
+                version: None
+            },
+        ];
+
+        assert_eq!(links, expected_items)
+    }
+
+    #[test]
     #[should_panic(expected = "Status(500)")]
     fn read_should_return_error_on_error_response() {
         let request = WebRequest::create();
         let response = request.get_html_response("https://httpbin.org/status/500");
 
         if let Ok(response) = response {
-            let _ = response.read().unwrap();
+            let _ = response.read(None).unwrap();
         }
     }
 
@@ -215,7 +312,7 @@ mod tests {
         let response = request
             .get_html_response("https://github.com/codecov/codecov-exe/releases/tag/1.13.0")
             .unwrap();
-        let (parent, links) = response.read().unwrap();
+        let (parent, links) = response.read(None).unwrap();
 
         assert_eq!(
             parent,

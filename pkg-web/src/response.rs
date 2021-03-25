@@ -73,7 +73,7 @@ pub trait WebResponse {
     /// structure holding the necessary items found. This may return an
     /// error if the status code is a success code, or if the reading of the
     /// content failed.
-    fn read(self) -> Result<Self::ResponseContent, Box<dyn std::error::Error>>;
+    fn read(self, re: Option<&str>) -> Result<Self::ResponseContent, Box<dyn std::error::Error>>;
 }
 
 #[cfg(test)]
@@ -101,6 +101,7 @@ mod tests {
 
         fn read(
             self,
+            _: Option<&str>,
         ) -> std::result::Result<
             <Self as WebResponse>::ResponseContent,
             std::boxed::Box<(dyn std::error::Error + 'static)>,
@@ -147,6 +148,6 @@ mod tests {
         let response = get("https://httpbin.org/get").unwrap();
         let response = DummyResponse::new(response);
 
-        response.read().unwrap();
+        response.read(None).unwrap();
     }
 }
