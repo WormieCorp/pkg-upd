@@ -1,18 +1,19 @@
 [package]
-name = "pkg-data"
+name = "pkg-version"
 version = "0.1.0"
 authors = ["AdmiringWorm <kim.nordmo@gmail.com>"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+serialize = ["semver/serde", "serde"]
+
 [dependencies]
-pkg-license = { path = "../pkg-license" }
-pkg-version = { path = "../pkg-version" }
-semver = { version = "0.11.0", features = ["serde"] }
-serde = "1.0.125"
-url = { version = "2.2.1", features = ["serde"] }
-whoami = "1.1.1"
+chrono = "0.4.19"
+num = "0.4.0"
+semver = "0.11.0"
+serde = { version = "1.0.125", optional = true }
 
 [dev-dependencies]
 rstest = "0.7.0"

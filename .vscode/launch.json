@@ -7,19 +7,132 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug unit tests in library 'pkg-data'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=pkg-data"
+                ],
+                "filter": {
+                    "name": "pkg-data",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'pkg-license'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=pkg-license"
+                ],
+                "filter": {
+                    "name": "pkg-license",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'pkg-version'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=pkg-version"
+                ],
+                "filter": {
+                    "name": "pkg-version",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example 'chocolatey'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=chocolatey",
+                    "--package=pkg-version"
+                ],
+                "filter": {
+                    "name": "chocolatey",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example 'chocolatey'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=chocolatey",
+                    "--package=pkg-version"
+                ],
+                "filter": {
+                    "name": "chocolatey",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'pkg-upd'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=pkg-upd"
+                ],
+                "filter": {
+                    "name": "pkg-upd",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug executable 'pkg-upd'",
             "cargo": {
-                "args": ["build", "--bin=pkg-upd", "--package=pkg-upd"],
+                "args": [
+                    "build",
+                    "--bin=pkg-upd",
+                    "--package=pkg-upd"
+                ],
                 "filter": {
                     "name": "pkg-upd",
                     "kind": "bin"
                 }
             },
-            "args": [
-                "pkg-upd/test-data/deserialize-full.pkg.toml",
-                "--log-level",
-                "trace"
-            ],
+            "args": [],
             "cwd": "${workspaceFolder}"
         },
         {
@@ -30,11 +143,30 @@
                 "args": [
                     "test",
                     "--no-run",
-                    "--lib=pkg-upd",
+                    "--bin=pkg-upd",
                     "--package=pkg-upd"
                 ],
                 "filter": {
                     "name": "pkg-upd",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'pkg-web'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=pkg-web"
+                ],
+                "filter": {
+                    "name": "pkg-web",
                     "kind": "lib"
                 }
             },

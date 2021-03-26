@@ -3,6 +3,7 @@ members = [
     "pkg-data",
     "pkg-license",
     "pkg-upd",
+    "pkg-version",
     "pkg-web"
 ]
 
