@@ -129,10 +129,10 @@ mod tests {
         // let us remove the date and server header
         let _ = headers.remove("server");
         let _ = headers.remove("date");
+        let _ = headers.remove("content-length"); // This can vary a little, so we remove it
 
         assert_eq!(headers, {
             let mut map = HashMap::new();
-            map.insert("content-length", "220");
             map.insert("access-control-allow-origin", "*");
             map.insert("access-control-allow-credentials", "true");
             map.insert("content-type", "application/json");
