@@ -35,7 +35,7 @@ fn main() {
         println!();
         print_line("Raw Version", &version);
         let choco = chocolatey::ChocoVersion::parse(&version);
-        if let Some(choco) = choco {
+        if let Ok(choco) = choco {
             print_line("Chocolatey", &choco);
             let semver: SemVersion = choco.into();
             print_line("SemVer from Choco", semver);

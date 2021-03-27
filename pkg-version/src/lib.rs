@@ -3,21 +3,50 @@
 
 mod versions;
 
-// use serde::Deserialize;
-// use serde::Serialize;
+use std::error::Error;
 use std::fmt::Display;
 
 pub use semver::Version as SemVersion;
+#[cfg(feature = "serialize")]
+use serde::{Deserialize, Serialize};
 pub use versions::{chocolatey, FixVersion};
 
+#[cfg_attr(feature = "serialize", derive(Deserialize, Serialize), serde(untagged))]
 #[derive(Debug, PartialEq)]
-//#[serde(untagged)]
 pub enum Versions {
     SemVer(SemVersion),
     Choco(chocolatey::ChocoVersion),
 }
 
+/// An error type for this crate
+///
+/// Currently, just a generic error.
+#[derive(Clone, PartialEq, Debug, PartialOrd)]
+pub enum SemanticVersionError {
+    /// An error occurred while parsing.
+    ParseError(String),
+}
+
+impl Display for SemanticVersionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        match self {
+            SemanticVersionError::ParseError(ref m) => write!(f, "{}", m),
+        }
+    }
+}
+
+impl Error for SemanticVersionError {}
+
 impl Versions {
+    pub fn parse(val: &str) -> Result<Versions, Box<dyn std::error::Error>> {
+        if let Ok(semver) = SemVersion::parse(val) {
+            Ok(Versions::SemVer(semver))
+        } else {
+            let val = chocolatey::ChocoVersion::parse(val)?;
+            Ok(Versions::Choco(val))
+        }
+    }
+
     pub fn to_choco(&self) -> chocolatey::ChocoVersion {
         match self {
             Versions::SemVer(semver) => chocolatey::ChocoVersion::from(semver.clone()),

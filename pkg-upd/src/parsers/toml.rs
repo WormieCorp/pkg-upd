@@ -64,6 +64,7 @@ mod tests {
     use std::str::FromStr;
 
     use pkg_data::prelude::*;
+    use pkg_version::{SemVersion, Versions};
     use rstest::rstest;
     use url::Url;
 
@@ -270,7 +271,7 @@ mod tests {
                     skip_start: 2,
                     skip_end: 1,
                 });
-                choco.version = semver::Version::new(3, 1, 0);
+                choco.version = Versions::SemVer(SemVersion::new(3, 1, 0));
                 choco.set_title("Artistic Style");
                 choco.set_copyright("Copyright (c) 2014 Jim Pattee, Tal Dividson");
                 choco.require_license_acceptance = false;

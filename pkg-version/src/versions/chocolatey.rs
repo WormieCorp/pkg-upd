@@ -4,8 +4,12 @@
 use std::fmt::Display;
 
 use semver::Identifier;
+#[cfg(feature = "serialize")]
+use serde::de::{self, Deserialize, Deserializer, Visitor};
+#[cfg(feature = "serialize")]
+use serde::ser::{Serialize, Serializer};
 
-use crate::{FixVersion, SemVersion};
+use crate::{FixVersion, SemVersion, SemanticVersionError};
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ChocoVersion {
@@ -39,11 +43,15 @@ impl ChocoVersion {
         choco
     }
 
-    pub fn parse(val: &str) -> Option<ChocoVersion> {
+    pub fn parse(val: &str) -> Result<ChocoVersion, Box<dyn std::error::Error>> {
         if val.is_empty() {
-            return None;
+            return Err(Box::new(SemanticVersionError::ParseError(
+                "There is no version string to parse".into(),
+            )));
         } else if !val.chars().next().unwrap_or('.').is_digit(10) {
-            return None;
+            return Err(Box::new(SemanticVersionError::ParseError(
+                "The version string to not start with a number".into(),
+            )));
         }
 
         let mut major = 0;
@@ -58,11 +66,17 @@ impl ChocoVersion {
                 ver_str.push(ch);
             } else if ch == '.' {
                 match i {
-                    0 => major = ver_str.parse().ok()?,
-                    1 => minor = ver_str.parse().ok()?,
-                    2 => patch = Some(ver_str.parse().ok()?),
-                    3 => build = Some(ver_str.parse().ok()?),
-                    _ => return None,
+                    0 => major = ver_str.parse()?,
+                    1 => minor = ver_str.parse()?,
+                    2 => patch = Some(ver_str.parse()?),
+                    3 => build = Some(ver_str.parse()?),
+                    _ => {
+                        return Err(Box::new(SemanticVersionError::ParseError(
+                            "There were additional numeric characters after the first 4 parts of \
+                             the version"
+                                .into(),
+                        )));
+                    }
                 };
 
                 i += 1;
@@ -75,11 +89,17 @@ impl ChocoVersion {
 
         if !ver_str.is_empty() {
             match i {
-                0 => major = ver_str.parse().ok()?,
-                1 => minor = ver_str.parse().ok()?,
-                2 => patch = Some(ver_str.parse().ok()?),
-                3 => build = Some(ver_str.parse().ok()?),
-                _ => return None,
+                0 => major = ver_str.parse()?,
+                1 => minor = ver_str.parse()?,
+                2 => patch = Some(ver_str.parse()?),
+                3 => build = Some(ver_str.parse()?),
+                _ => {
+                    return Err(Box::new(SemanticVersionError::ParseError(
+                        "There were additional numeric characters after the first 4 parts of the \
+                         version"
+                            .into(),
+                    )));
+                }
             };
             ver_str.clear();
         }
@@ -99,7 +119,7 @@ impl ChocoVersion {
             pre_release: pre,
         };
 
-        Some(result)
+        Ok(result)
     }
 
     pub fn set_patch(&mut self, patch: u8) {
@@ -224,6 +244,45 @@ impl From<ChocoVersion> for SemVersion {
         }
 
         SemVersion::parse(&ver_str).unwrap()
+    }
+}
+
+#[cfg(feature = "serialize")]
+impl Serialize for ChocoVersion {
+    fn serialize<S>(&self, serialize: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        // Serialize ChocoVersion as a string
+        serialize.collect_str(self)
+    }
+}
+
+#[cfg(feature = "serialize")]
+impl<'de> Deserialize<'de> for ChocoVersion {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct ChocoVersionVisitor;
+
+        // Deserialize ChocoVersion from a string.
+        impl<'de> Visitor<'de> for ChocoVersionVisitor {
+            type Value = ChocoVersion;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a Chocolatey version as a string")
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                ChocoVersion::parse(v).map_err(de::Error::custom)
+            }
+        }
+
+        deserializer.deserialize_str(ChocoVersionVisitor)
     }
 }
 
@@ -430,10 +489,9 @@ mod tests {
         case("no-version"),
         case("6.2.1.1.3.4")
     )]
+    #[should_panic]
     fn parse_should_return_none(val: &str) {
-        let version = ChocoVersion::parse(val);
-
-        assert_eq!(version, None)
+        let _ = ChocoVersion::parse(val).unwrap();
     }
 
     #[test]

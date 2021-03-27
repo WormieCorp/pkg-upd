@@ -8,7 +8,7 @@
 use std::collections::HashMap;
 use std::fmt::Display;
 
-use semver::Version;
+use pkg_version::Versions;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -56,7 +56,7 @@ pub struct ChocolateyMetadata {
     /// The version of the Chocolatey package, can be automatically updated and
     /// is not necessary to initially be set.
     #[serde(default = "crate::defaults::empty_version")]
-    pub version: Version,
+    pub version: Versions,
 
     /// The authors/developers of the software that the package will be created
     /// for.
@@ -82,7 +82,7 @@ pub struct ChocolateyMetadata {
     release_notes: Option<String>,
 
     #[serde(default)]
-    dependencies: HashMap<String, Version>,
+    dependencies: HashMap<String, Versions>,
 }
 
 impl ChocolateyMetadata {
@@ -159,10 +159,10 @@ impl ChocolateyMetadata {
 
     pub fn add_dependencies(&mut self, id: &str, version: &str) {
         self.dependencies
-            .insert(id.into(), Version::parse(version).unwrap());
+            .insert(id.into(), Versions::parse(version).unwrap());
     }
 
-    pub fn set_dependencies(&mut self, dependencies: HashMap<String, Version>) {
+    pub fn set_dependencies(&mut self, dependencies: HashMap<String, Versions>) {
         self.dependencies = dependencies;
     }
 
