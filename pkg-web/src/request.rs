@@ -134,7 +134,11 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "failed to lookup address information")]
+    #[cfg_attr(
+        not(windows),
+        should_panic(expected = "failed to lookup address information")
+    )]
+    #[cfg_attr(windows, should_panic(expected = "No such host is known."))]
     fn get_html_response_should_be_error_on_non_existing_urls() {
         let request = WebRequest::create();
 
