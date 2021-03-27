@@ -2,7 +2,7 @@ name: Build Project
 
 on:
   push:
-    branches: [master, develop]
+    branches: [master, develop, "multi-plat"]
     tags-ignore:
       - "*"
   pull_request:
@@ -13,7 +13,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: i686-pc-windows-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-gnu
 
     steps:
       - uses: actions/checkout@v2
@@ -21,11 +31,10 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+          target: ${{ matrix.target }}
           default: true
           profile: minimal
       - uses: Swatinem/rust-cache@v1
-        with:
-          key: ${{ matrix.os }}-deps-${{ hashFiles('Cargo.lock') }}
       - name: Build projects with all features
         uses: actions-rs/cargo@v1
         with:
@@ -34,28 +43,10 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: ${{ matrix.os }}
+          name: ${{ matrix.target }}
           path: |
             target/release/pkg-upd
             target/release/pkg-upd.exe
-
-  tests:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-
-    steps:
-      - uses: actions/checkout@v2
-      - name: Install-latest stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          default: true
-          profile: minimal
-      - uses: Swatinem/rust-cache@v1
-        with:
-          key: ${{ matrix.os }}-deps-${{ hashFiles('Cargo.lock') }}
       - name: Test projects with all features
         uses: actions-rs/cargo@v1
         with:
