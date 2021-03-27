@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 pkg-license = { path = "../pkg-license" }
 semver = { version = "0.11.0", features = ["serde"] }
-serde = "1.0.124"
+serde = "1.0.125"
 url = { version = "2.2.1", features = ["serde"] }
 whoami = "1.1.1"
 

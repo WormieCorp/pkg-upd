@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 license = "1.1.10"
-serde = "1.0.124"
+serde = "1.0.125"
 url = { version = "2.2.1", features = ["serde"] }
 
 [dev-dependencies]
