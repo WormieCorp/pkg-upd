@@ -134,7 +134,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "failed to lookup address information: Name or service not known")]
+    #[should_panic(expected = "failed to lookup address information")]
     fn get_html_response_should_be_error_on_non_existing_urls() {
         let request = WebRequest::create();
 
