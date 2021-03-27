@@ -58,11 +58,53 @@ mod tests {
     }
 
     #[test]
+    fn to_semver_should_return_cloned_version_of_semver() {
+        let version = Versions::SemVer(SemVersion::parse("5.2.2-alpha.5+55").unwrap());
+        let expected = SemVersion::parse("5.2.2-alpha.5+55").unwrap();
+
+        let actual = version.to_semver();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn to_choco_should_create_chocolatey_version_from_semver() {
         let version = Versions::SemVer(SemVersion::parse("1.0.5-beta.55+99").unwrap());
         let expected = chocolatey::ChocoVersion::parse("1.0.5-beta-0055").unwrap();
 
         let actual = version.to_choco();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn to_choco_should_returned_cloned_version_of_choco() {
+        let version =
+            Versions::Choco(chocolatey::ChocoVersion::parse("5.2.1.56-unstable-0050").unwrap());
+        let expected = chocolatey::ChocoVersion::parse("5.2.1.56-unstable-0050").unwrap();
+
+        let actual = version.to_choco();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn display_choco_version() {
+        let version =
+            Versions::Choco(chocolatey::ChocoVersion::parse("2.1.0-unstable-0050").unwrap());
+        let expected = "2.1.0-unstable-0050";
+
+        let actual = format!("{}", version);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn display_semver() {
+        let version = Versions::SemVer(SemVersion::parse("2.5.2+build.50").unwrap());
+        let expected = "2.5.2+build.50";
+
+        let actual = format!("{}", version);
 
         assert_eq!(actual, expected);
     }

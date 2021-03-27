@@ -40,6 +40,12 @@ impl ChocoVersion {
     }
 
     pub fn parse(val: &str) -> Option<ChocoVersion> {
+        if val.is_empty() {
+            return None;
+        } else if !val.chars().next().unwrap_or('.').is_digit(10) {
+            return None;
+        }
+
         let mut major = 0;
         let mut minor = 0;
         let mut patch = None;
@@ -352,6 +358,16 @@ mod tests {
     }
 
     #[test]
+    fn with_build_should_set_full_build_version() {
+        let version = ChocoVersion::with_build(5, 1, 1, 3);
+        let expected = "5.1.1.3";
+
+        let actual = format!("{}", version);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
     fn add_fix_should_create_correct_fix_version() {
         let mut version = ChocoVersion::new(2, 1);
         version.add_fix().unwrap();
@@ -389,19 +405,35 @@ mod tests {
     #[rstest(
         v,
         expected,
+        case("3", "3.0"),
         case("1.0", "1.0"),
         case("0.2.65", "0.2.65"),
         case("3.5.0.2342", "3.5.0.2342"),
         case("3.3-alpha001", "3.3-alpha0001"),
         case("3.2-alpha.10", "3.2-alpha-0010"),
         case("3.3.5-beta-11", "3.3.5-beta-0011"),
-        case("3.1.1+55", "3.1.1")
+        case("3.1.1+55", "3.1.1"),
+        case("4.0.0.2-beta.5", "4.0.0.2-beta-0005"),
+        case("0.1.0-55", "0.1.0-unstable-0055")
     )]
     fn parse_should_create_correct_versions(v: &str, expected: &str) {
         let version = ChocoVersion::parse(v).unwrap();
         let version = format!("{}", version);
 
         assert_eq!(version, expected);
+    }
+
+    #[rstest(
+        val,
+        case(""),
+        case("6.2.2.2.1"),
+        case("no-version"),
+        case("6.2.1.1.3.4")
+    )]
+    fn parse_should_return_none(val: &str) {
+        let version = ChocoVersion::parse(val);
+
+        assert_eq!(version, None)
     }
 
     #[test]
@@ -425,7 +457,7 @@ mod tests {
         ),
         case(
             "0.3.0-unstable-001",
-            ChocoVersion::with_patch(0, 3, 0).with_prerelease(vec![Identifier::AlphaNumeric("unstable001".into())])
+            ChocoVersion::with_patch(0, 3, 0).with_prerelease(vec![Identifier::AlphaNumeric("unstable".into()), Identifier::Numeric(1)])
         ),
         case(
             "5.1.1-alpha.5",
@@ -433,12 +465,29 @@ mod tests {
         ),
         case(
             "1.2.3-beta50",
-            ChocoVersion::with_patch(1, 2, 3).with_prerelease(vec![Identifier::AlphaNumeric("beta50".into())])
+            ChocoVersion::with_patch(1, 2, 3).with_prerelease(vec![Identifier::AlphaNumeric("beta0050".into())])
+        ),
+        case(
+            "3.0.0-666",
+            ChocoVersion::with_patch(3, 0, 0).with_prerelease(vec![Identifier::AlphaNumeric("unstable".into()), Identifier::Numeric(666)])
         )
     )]
-    #[ignore]
     fn from_should_create_choco_version_with_prerelease(test: &str, expected: ChocoVersion) {
         let actual = ChocoVersion::from(SemVersion::parse(test).unwrap());
+
+        assert_eq!(actual, expected);
+    }
+
+    #[rstest(
+        test, expected,
+        case("3.0.0-beta-0050", SemVersion::parse("3.0.0-beta.50").unwrap()),
+        case("1.2.2.5-unstable-0050", SemVersion::parse("1.2.2-unstable.50+5").unwrap()),
+        case("5.1-beta0995", SemVersion::parse("5.1.0-beta.995").unwrap()),
+        case("1.0-alpha-0002-rc0005", SemVersion::parse("1.0.0-alpha-rc-2.5").unwrap()), // This ending version is due to chocolatey parsing
+        case("5.0-beta-ceta", SemVersion::parse("5.0.0-beta-ceta").unwrap())
+    )]
+    fn from_should_create_sematic_version(test: &str, expected: SemVersion) {
+        let actual = SemVersion::from(ChocoVersion::parse(test).unwrap());
 
         assert_eq!(actual, expected);
     }
