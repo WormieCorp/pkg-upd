@@ -21,13 +21,13 @@ install:
 
       cargo -vV
 cache:
-  - C:\Users\appveyor\.cargo\bin -> Cargo.lock
-  - C:\Users\appveyor\.cargo\.crates2.json -> Cargo.lock
-  - C:\Users\appveyor\.cargo\.crates.toml -> Cargo.lock
-  - C:\Users\appveyor\.cargo\git -> Cargo.lock
-  - C:\Users\appveyor\.cargo\registry\cache -> Cargo.lock
-  - C:\Users\appveyor\.cargo\registry\index -> Cargo.lock
-  - target -> Cargo.lock
+  - C:\Users\appveyor\.cargo\bin
+  - C:\Users\appveyor\.cargo\.crates2.json
+  - C:\Users\appveyor\.cargo\.crates.toml
+  - C:\Users\appveyor\.cargo\git
+  - C:\Users\appveyor\.cargo\registry\cache
+  - C:\Users\appveyor\.cargo\registry\index
+  - target
 build_script:
   - cmd: cargo build --release --all-features --locked
 test_script:
