@@ -41,5 +41,3 @@ jobs:
         with:
           command: test
           args: --release --all-features --locked
-        run: Set-ExecutionPolicy Unrestricted -Force
-        shell: pwsh
