@@ -34,6 +34,7 @@ jobs:
           name: ${{ matrix.os }}
           path: |
             target/release/pkg-upd
+            target/release/pkg-ver
             target/release/*.bin
             target/release/*.exe
       - name: Test projects with all features
