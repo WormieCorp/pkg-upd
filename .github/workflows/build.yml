@@ -13,10 +13,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: macos-latest
-          - os: ubuntu-latest
-          - os: windows-latest
+        os: [macos-latest, ubuntu-latest]
 
     steps:
       - uses: actions/checkout@v2
@@ -39,15 +36,7 @@ jobs:
             target/release/pkg-upd
             target/release/pkg-upd.bin
             target/release/pkg-upd.exe
-      - name: Test projects with all features (windows)
-        if: ${{ runner.os != 'Windows' }}
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release --all-features --locked
-        run: Set-ExecutionPolicy Unrestricted -Force
-      - name: Test projects with all features (windows)
-        if: ${{ runner.os == 'Windows' }}
+      - name: Test projects with all features
         uses: actions-rs/cargo@v1
         with:
           command: test
