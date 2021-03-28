@@ -6,8 +6,6 @@ image: Visual Studio 2019
 environment:
   matrix:
     - channel: stable
-      target: i686-pc-windows-msvc
-    - channel: stable
       target: x86_64-pc-windows-msvc
 install:
   - cmd: >-
@@ -28,8 +26,7 @@ cache:
   - C:\Users\appveyor\.cargo\registry\cache
   - C:\Users\appveyor\.cargo\registry\index
   - target
-build_script:
-  - cmd: cargo build --release --all-features --locked
+build: off
 test_script:
   - pwsh: >-
       Set-ExecutionPolicy Unrestricted -Force
