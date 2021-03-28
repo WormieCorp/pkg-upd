@@ -39,8 +39,18 @@ jobs:
             target/release/pkg-upd
             target/release/pkg-upd.bin
             target/release/pkg-upd.exe
-      - name: Test projects with all features
+      - name: Test projects with all features (windows)
+        if: ${{ runner.os != 'Windows' }}
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --release --all-features --locked
+        run: Set-ExecutionPolicy Unrestricted -Force
+      - name: Test projects with all features (windows)
+        if: ${{ runner.os == 'Windows' }}
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release --all-features --locked
+        run: Set-ExecutionPolicy Unrestricted -Force
+        shell: pwsh
