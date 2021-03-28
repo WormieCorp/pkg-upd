@@ -520,25 +520,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
-name = "lenient_semver"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1e69422a47c615a5d4dc300df0aeceaf8db75316d7a96b80c41f1ae0d1c6e30"
-dependencies = [
- "lenient_semver_parser",
- "semver",
-]
-
-[[package]]
-name = "lenient_semver_parser"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c7cb776fddcf01a2bf698446332a08b38ad591f93126f3d78880bd2e1900cbbe"
-dependencies = [
- "semver",
-]
-
-[[package]]
 name = "libc"
 version = "0.2.91"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -923,7 +904,6 @@ dependencies = [
  "pkg-license",
  "pkg-version",
  "rstest",
- "semver",
  "serde",
  "url",
  "whoami",
@@ -953,7 +933,6 @@ dependencies = [
  "pkg-version",
  "rstest",
  "rusty-hook",
- "semver",
  "serde",
  "serde_json",
  "structopt",
@@ -979,8 +958,8 @@ name = "pkg-web"
 version = "0.1.0"
 dependencies = [
  "lazy_static",
- "lenient_semver",
  "log",
+ "pkg-version",
  "regex",
  "reqwest",
  "select",

@@ -6,8 +6,8 @@ edition = "2018"
 
 [dependencies]
 lazy_static = "1.4.0"
-lenient_semver = "0.3.0"
 log = "0.4.14"
+pkg-version = { path = "../pkg-version" }
 regex = "1.4.5"
 reqwest = {version = "0.11.2", features = ["blocking"] }
 select = "0.5.0"

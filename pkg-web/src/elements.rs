@@ -6,8 +6,8 @@
 
 use std::collections::HashMap;
 
+use pkg_version::Versions;
 use reqwest::Url;
-use semver::Version;
 
 /// Defines what type (MIME or extension) the current link
 /// is for.
@@ -60,7 +60,7 @@ pub struct LinkElement {
     /// The inner text or html of this link.
     pub text: String,
     /// The version that was parsed pased on any regex that a user specified
-    pub version: Option<Version>,
+    pub version: Option<Versions>,
     /// The type (either by extension, or mime type) that links are for. (*ie:
     /// html, json, text, binary, etc.).
     pub link_type: LinkType,

@@ -24,8 +24,7 @@ lazy_static = "1.4.0"
 log = "0.4.14"
 pkg-data = { path = "../pkg-data" }
 pkg-license = { path = "../pkg-license" }
-pkg-version = { path = "../pkg-version" }
-semver = { version = "0.11.0", features = ["serde"] }
+pkg-version = { path = "../pkg-version", features = ["serialize"] }
 serde = { version = "1.0.125", optional = true }
 serde_json = { version = "1.0.64", optional = true }
 structopt = "0.3.21"

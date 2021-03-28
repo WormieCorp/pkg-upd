@@ -1,12 +1,12 @@
 // Copyright (c) 2021 Kim J. Nordmo and WormieCorp.
 // Licensed under the MIT license. See LICENSE.txt file in the project
 
+use pkg_version::Versions;
 use regex::{Captures, Regex};
 use reqwest::blocking::Response;
 use reqwest::{header, Url};
 use select::document::Document;
 use select::predicate::Name;
-use semver::Version;
 
 use crate::response::MIME_TYPES;
 use crate::{LinkElement, LinkType, WebResponse};
@@ -165,15 +165,13 @@ fn get_link_elements(
     Ok(results)
 }
 
-fn parse_version(captures: Captures<'_>) -> Option<Version> {
-    lenient_semver::parse(captures.name("version")?.as_str()).ok()
+fn parse_version(captures: Captures<'_>) -> Option<Versions> {
+    Versions::parse(captures.name("version")?.as_str()).ok()
 }
 
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
-
-    use semver::Version;
 
     use super::*;
     use crate::WebRequest;
@@ -233,7 +231,7 @@ mod tests {
                     map.insert("class".into(), "d-flex flex-items-center min-width-0".into());
                     map
                 },
-                version: Some(Version::parse("1.0.6").unwrap())
+                version: Some(Versions::parse("1.0.6").unwrap())
             }
         ])
     }
