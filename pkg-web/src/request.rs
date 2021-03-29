@@ -95,6 +95,26 @@ impl WebRequest {
         Ok(HtmlResponse::new(response))
     }
 
+    /// Makes a request to a web endpoint and requests a result in the type of a
+    /// binary without downloading the actual upstream content. If an etag
+    /// or last_modified argument is specified, these will be sent along with
+    /// the request and will return a [ResponseType::Updated] if the server
+    /// responds with a not modified response, otherwise a wrapped binary
+    /// response is returned that can be used to download the remote file.
+    ///
+    /// ## Arguments
+    ///
+    /// - `url`: The url to the binary file that should possibly be downloaded.
+    /// - `etag`: The etag that was previously returned by the server, will be
+    ///   used to check if the binary file have changed.
+    /// - `last_modified`: A string with the information of when the binary file
+    ///   was last modified, this usually is a response previously sent my the
+    ///   server.
+    ///
+    /// ## Notes
+    ///
+    /// - _Remember to set the work directory before doing the actual
+    ///   downloading_
     pub fn get_binary_response(
         &self,
         url: &str,

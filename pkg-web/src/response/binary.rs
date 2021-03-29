@@ -12,6 +12,11 @@ use reqwest::{header, Url};
 
 use crate::WebResponse;
 
+/// Contains functions and items necessary for parsing and downloading binary
+/// files.
+///
+/// Implements the [WebResponse] trait, and are not meant to be created directly
+/// by a user.
 #[derive(Debug)]
 pub struct BinaryResponse {
     response: Response,
@@ -25,6 +30,9 @@ impl PartialEq for BinaryResponse {
 }
 
 impl BinaryResponse {
+    /// Creates a new instance of the [BinaryResponse] structure to hold the
+    /// current response, and allow downloading the remote file from the content
+    /// response.
     pub fn new(response: Response) -> BinaryResponse {
         BinaryResponse {
             response,
@@ -32,10 +40,16 @@ impl BinaryResponse {
         }
     }
 
+    /// Sets the current work directory (the directory where files will be
+    /// downloaded). If this function is never called, the current directory
+    /// (based on the execution location of the program) will be used. As such,
+    /// it should always be used.
     pub fn set_work_dir(&mut self, path: &Path) {
         self.work_dir = PathBuf::from(path);
     }
 
+    /// Tries to get the name of the remote file by either reading the
+    /// disposition header, or checking the url if it contains an extension.
     pub fn file_name(&self) -> Option<String> {
         if let Some(name) = get_from_disposition(self.response.headers()) {
             Some(name)
@@ -101,12 +115,28 @@ fn get_from_disposition(headers: &HeaderMap<HeaderValue>) -> Option<String> {
 }
 
 impl WebResponse for BinaryResponse {
+    /// The path to a written file.
     type ResponseContent = PathBuf;
 
     fn response(&self) -> &Response {
         &self.response
     }
 
+    /// Reads and downloads the response content.
+    ///
+    /// ## Arguments
+    ///
+    /// - `output`: The name of the file to create, if not specified it will be
+    ///   resolved from the response.
+    ///
+    /// ## Returns
+    ///
+    /// On a successful download, the written path will be returned.
+    ///
+    /// ## Warning
+    ///
+    /// The `output` argument will be combined with the previously set work
+    /// directory.
     fn read(
         self,
         output: Option<&str>,

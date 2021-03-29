@@ -33,13 +33,34 @@ lazy_static! {
     };
 }
 
+/// A simple enumerator that holds information of wether the response returned
+/// by a server said the content is up to date, or if there is new content
+/// available.
+///
+/// ## Notes
+///
+/// - Calling any child response may panic if a function is called, and the
+///   server returned an not modified response.
 #[derive(Debug, PartialEq)]
 pub enum ResponseType<T: WebResponse> {
+    /// The response returned by the server was considered up to date, and no
+    /// further processing is available. Sets the server status code as a
+    /// member.
     Updated(u16),
+    /// The response returned by the server is considered to be outdated and
+    /// additional processing is necessary. Sets the type of the web
+    /// response that can be used for further processing, and the status code
+    /// returned by the server.
     New(T, u16),
 }
 
+/// Implements common functions that are also implemented on any child response.
 impl<T: WebResponse> ResponseType<T> {
+    /// Calls the read function on the underlying web response.
+    ///
+    /// ## Warning
+    ///
+    /// - Will panic if the response set is considered to be up to date.
     pub fn read(
         self,
         option: Option<&str>,
@@ -54,7 +75,12 @@ impl<T: WebResponse> ResponseType<T> {
     }
 }
 
+/// Implements functions that only makes sense to be called when the response
+/// type is a binary response.
 impl ResponseType<BinaryResponse> {
+    /// Sets the directory that should be used when calling the child response.
+    /// This function should not panic even if the response is considered up to
+    /// date.
     pub fn set_work_dir(&mut self, path: &Path) {
         if let ResponseType::New(item, _) = self {
             item.set_work_dir(path)
@@ -71,6 +97,8 @@ impl ResponseType<BinaryResponse> {
 ///
 /// - [HtmlResponse](HtmlResponse): _Responsible of parsing html sites,
 ///   generally for aquiring links on a web page_.
+/// - [BinaryResponse](BinaryResponse): _Responsible for downloading a remote
+///   file to a specified location_
 pub trait WebResponse {
     /// The response content that will be returned by any implementation of
     /// [WebResponse]. This can be anything that would be expected by the

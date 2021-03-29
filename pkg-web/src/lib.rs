@@ -1,5 +1,6 @@
 // Copyright (c) 2021 Kim J. Nordmo and WormieCorp.
 // Licensed under the MIT license. See LICENSE.txt file in the project
+#![deny(missing_docs)]
 
 //! This crate allows requesting different kind of websites remotely, as well as
 //! downloading binary files and extracting link items.
