@@ -131,7 +131,9 @@ impl WebRequest {
                 HeaderValue::from_static(ACCEPTED_TYPES["binary"]),
             );
             if let Some(etag) = etag {
-                headers.insert(header::IF_NONE_MATCH, HeaderValue::from_str(etag)?);
+                let new_etag = format!("\"{}\"", etag.trim_matches('"'));
+
+                headers.insert(header::IF_NONE_MATCH, HeaderValue::from_str(&new_etag)?);
             }
             if let Some(last_modified) = last_modified {
                 headers.insert(
