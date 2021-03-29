@@ -3,15 +3,28 @@
 
 //! Section responsible for allowing requests to be sent to remote locations.
 
+use std::collections::HashMap;
+
+use lazy_static::lazy_static;
 use reqwest::blocking::Client;
 use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::{header, Url};
+use reqwest::{header, StatusCode, Url};
 
-use crate::response::{BinaryResponse, HtmlResponse};
+use crate::response::{BinaryResponse, HtmlResponse, ResponseType};
 
 /// The name of the application + the version, which should be sent with every
 /// request to the websites.
-static APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+const APP_USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "/", env!("CARGO_PKG_VERSION"));
+
+lazy_static! {
+    static ref ACCEPTED_TYPES: HashMap<&'static str, &'static str> = {
+        let mut map = HashMap::new();
+        map.insert("html", "text/html; charset=UTF-8");
+        map.insert("binary", "application/octet-stream");
+
+        map
+    };
+}
 
 /// Holds the necessary information to create requests to websites.
 /// Also responsible for having a structure instance that can be used to get
@@ -76,7 +89,7 @@ impl WebRequest {
 
         let response = client
             .get(url)
-            .header(header::ACCEPT, "text/html;charset=UTF-8")
+            .header(header::ACCEPT, ACCEPTED_TYPES["html"])
             .send()?;
 
         Ok(HtmlResponse::new(response))
@@ -87,7 +100,7 @@ impl WebRequest {
         url: &str,
         etag: Option<&str>,
         last_modified: Option<&str>,
-    ) -> Result<BinaryResponse, Box<dyn std::error::Error>> {
+    ) -> Result<ResponseType<BinaryResponse>, Box<dyn std::error::Error>> {
         let url = Url::parse(url)?;
 
         let client = &self.client;
@@ -95,7 +108,7 @@ impl WebRequest {
             let mut headers = HeaderMap::new();
             headers.insert(
                 header::ACCEPT,
-                HeaderValue::from_static("application/octet-stream"),
+                HeaderValue::from_static(ACCEPTED_TYPES["binary"]),
             );
             if let Some(etag) = etag {
                 headers.insert(header::IF_NONE_MATCH, HeaderValue::from_str(etag)?);
@@ -111,8 +124,16 @@ impl WebRequest {
         };
 
         let response = client.get(url).headers(headers).send()?;
+        let status = response.status();
 
-        Ok(BinaryResponse::new(response))
+        if status == StatusCode::NOT_MODIFIED {
+            Ok(ResponseType::Updated(status.as_u16()))
+        } else {
+            Ok(ResponseType::New(
+                BinaryResponse::new(response),
+                status.as_u16(),
+            ))
+        }
     }
 }
 
@@ -179,5 +200,21 @@ mod tests {
         request
             .get_html_response("https://chocolatyyy.org")
             .unwrap();
+    }
+
+    #[test]
+    fn get_binary_response_should_return_already_updated_response_by_etag() {
+        let request = WebRequest::create();
+        let response = request.get_binary_response("https://github.com/codecov/codecov-exe/releases/download/1.13.0/codecov-linux-x64.zip", Some("\"e3d41332a09dd059961efade340c12da\""), None).unwrap();
+
+        assert_eq!(response, ResponseType::Updated(304));
+    }
+
+    #[test]
+    fn get_binary_response_should_return_already_updated_response_by_last_modified() {
+        let request = WebRequest::create();
+        let response = request.get_binary_response("https://github.com/codecov/codecov-exe/releases/download/1.13.0/codecov-linux-x64.zip", None, Some("Tue, 16 Feb 2021 03:33:36 GMT")).unwrap();
+
+        assert_eq!(response, ResponseType::Updated(304));
     }
 }

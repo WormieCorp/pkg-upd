@@ -10,12 +10,15 @@ mod binary;
 mod html;
 
 use std::collections::HashMap;
+use std::path::Path;
 
 pub use binary::BinaryResponse;
 pub use html::HtmlResponse;
 use lazy_static::lazy_static;
 use reqwest::blocking::Response;
 use reqwest::StatusCode;
+
+use crate::elements::LinkType;
 
 lazy_static! {
     static ref MIME_TYPES: HashMap<&'static str, LinkType> = {
@@ -30,7 +33,34 @@ lazy_static! {
     };
 }
 
-use crate::elements::LinkType;
+#[derive(Debug, PartialEq)]
+pub enum ResponseType<T: WebResponse> {
+    Updated(u16),
+    New(T, u16),
+}
+
+impl<T: WebResponse> ResponseType<T> {
+    pub fn read(
+        self,
+        option: Option<&str>,
+    ) -> Result<T::ResponseContent, Box<dyn std::error::Error>> {
+        match self {
+            ResponseType::Updated(status) => panic!(
+                "Can not read an already updated response. Status Code: {}",
+                status
+            ),
+            ResponseType::New(item, _) => item.read(option),
+        }
+    }
+}
+
+impl ResponseType<BinaryResponse> {
+    pub fn set_work_dir(&mut self, path: &Path) {
+        if let ResponseType::New(item, _) = self {
+            item.set_work_dir(path)
+        }
+    }
+}
 
 /// Common trait to allow multiple response types to have the same functions to
 /// be used.

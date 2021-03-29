@@ -8,19 +8,20 @@ use std::str::FromStr;
 
 use reqwest::blocking::Response;
 use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::{header, StatusCode, Url};
+use reqwest::{header, Url};
 
 use crate::WebResponse;
 
-#[derive(Debug, PartialEq)]
-pub enum BinaryResponseType {
-    Updated,
-    New(PathBuf),
-}
-
+#[derive(Debug)]
 pub struct BinaryResponse {
     response: Response,
     work_dir: PathBuf,
+}
+
+impl PartialEq for BinaryResponse {
+    fn eq(&self, rhs: &BinaryResponse) -> bool {
+        self.work_dir == rhs.work_dir // We do not compare the actual response, as it is not interesting
+    }
 }
 
 impl BinaryResponse {
@@ -100,7 +101,7 @@ fn get_from_disposition(headers: &HeaderMap<HeaderValue>) -> Option<String> {
 }
 
 impl WebResponse for BinaryResponse {
-    type ResponseContent = BinaryResponseType;
+    type ResponseContent = PathBuf;
 
     fn response(&self) -> &Response {
         &self.response
@@ -110,11 +111,6 @@ impl WebResponse for BinaryResponse {
         self,
         output: Option<&str>,
     ) -> Result<Self::ResponseContent, Box<dyn std::error::Error>> {
-        let status = self.response().status();
-        if status == StatusCode::NOT_MODIFIED {
-            return Ok(BinaryResponseType::Updated);
-        }
-
         let output = if let Some(output) = output {
             output.into()
         } else {
@@ -130,7 +126,7 @@ impl WebResponse for BinaryResponse {
 
         response.copy_to(&mut writer)?;
 
-        Ok(BinaryResponseType::New(output))
+        Ok(output)
     }
 }
 
@@ -234,28 +230,8 @@ mod tests {
         let expected = work_dir.join(fname);
         let path = response.read(None).unwrap();
 
-        assert_eq!(path, BinaryResponseType::New(expected.clone()));
+        assert_eq!(path, expected.clone());
 
         let _ = std::fs::remove_file(expected);
-    }
-
-    #[test]
-    fn read_should_return_already_updated_response_by_etag() {
-        let request = WebRequest::create();
-        let response = request.get_binary_response("https://github.com/codecov/codecov-exe/releases/download/1.13.0/codecov-linux-x64.zip", Some("\"e3d41332a09dd059961efade340c12da\""), None).unwrap();
-
-        let status = response.read(None).unwrap();
-
-        assert_eq!(status, BinaryResponseType::Updated)
-    }
-
-    #[test]
-    fn read_should_return_already_updated_response_by_last_modified() {
-        let request = WebRequest::create();
-        let response = request.get_binary_response("https://github.com/codecov/codecov-exe/releases/download/1.13.0/codecov-linux-x64.zip", None, Some("Tue, 16 Feb 2021 03:33:36 GMT")).unwrap();
-
-        let status = response.read(None).unwrap();
-
-        assert_eq!(status, BinaryResponseType::Updated);
     }
 }
