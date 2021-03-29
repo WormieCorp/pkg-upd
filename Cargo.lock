@@ -931,6 +931,7 @@ dependencies = [
  "pkg-data",
  "pkg-license",
  "pkg-version",
+ "pkg_web",
  "rstest",
  "rusty-hook",
  "serde",
@@ -954,7 +955,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pkg-web"
+name = "pkg_web"
 version = "0.1.0"
 dependencies = [
  "lazy_static",

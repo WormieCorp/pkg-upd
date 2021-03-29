@@ -4,7 +4,7 @@ members = [
     "pkg-license",
     "pkg-upd",
     "pkg-version",
-    "pkg-web"
+    "pkg_web"
 ]
 
 [profile.release]
