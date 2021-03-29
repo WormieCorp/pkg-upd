@@ -5,6 +5,7 @@
 //! creation.
 
 use std::collections::HashMap;
+use std::fmt::Display;
 
 use pkg_version::Versions;
 use reqwest::Url;
@@ -45,6 +46,19 @@ pub enum LinkType {
 impl Default for LinkType {
     fn default() -> LinkType {
         LinkType::Unknown
+    }
+}
+
+impl Display for LinkType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
+        match self {
+            Self::Binary => f.write_str("Binary"),
+            Self::Css => f.write_str("StyleSheet"),
+            Self::Html => f.write_str("HTML"),
+            Self::Json => f.write_str("JSON"),
+            Self::Text => f.write_str("Text"),
+            Self::Unknown => f.write_str("Unknown"),
+        }
     }
 }
 
