@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project
 use std::fmt::Display;
 
+use human_panic::setup_panic;
 use pkg_version::*;
 use structopt::StructOpt;
 use yansi::Color;
@@ -19,6 +20,11 @@ struct Arguments {
 }
 
 fn main() {
+    setup_panic!();
+    if cfg!(windows) && !yansi::Paint::enable_windows_ascii() {
+        yansi::Paint::disable();
+    }
+
     let args = Arguments::from_args();
 
     println!(

@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project
 #![windows_subsystem = "console"]
 
+use human_panic::setup_panic;
 use pkg_upd::logging;
 use pkg_web::{LinkElement, WebRequest, WebResponse};
 use structopt::StructOpt;
@@ -52,6 +53,10 @@ struct Arguments {
 }
 
 fn main() {
+    setup_panic!();
+    if cfg!(windows) && !yansi::Paint::enable_windows_ascii() {
+        yansi::Paint::disable();
+    }
     let args = Arguments::from_args();
     logging::setup_logging(&args.log).expect("Unable to configure logging of the application!");
 

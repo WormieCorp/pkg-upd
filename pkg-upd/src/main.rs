@@ -25,6 +25,10 @@ struct Arguments {
 
 fn main() {
     setup_panic!();
+    if cfg!(windows) && !yansi::Paint::enable_windows_ascii() {
+        yansi::Paint::disable();
+    }
+
     let arguments = Arguments::from_args();
     logging::setup_logging(&arguments.log)
         .expect("Unable to configure logging of the application!");
