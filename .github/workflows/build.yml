@@ -35,6 +35,7 @@ jobs:
           path: |
             target/release/pkg-upd
             target/release/pkg-ver
+            target/release/pkg-web
             target/release/*.bin
             target/release/*.exe
       - name: Test projects with all features
