@@ -8,12 +8,14 @@ use human_bytes::human_bytes;
 use human_panic::setup_panic;
 use humanize_url::humanize_url;
 use log::{error, info};
-use pkg_upd::logging;
+use pkg_upd::{log_data, logging};
 use pkg_web::response::ResponseType;
 use pkg_web::{LinkElement, WebRequest, WebResponse};
 use structopt::StructOpt;
 use url::Url;
 use yansi::Color;
+
+log_data! {"pkg-web"}
 
 #[derive(StructOpt)]
 #[structopt(after_help = "EXAMPLES:
@@ -73,7 +75,7 @@ struct Arguments {
     cmd: Option<Commands>,
 
     #[structopt(flatten)]
-    log: logging::LogData,
+    log: LogData,
 }
 
 fn main() {
