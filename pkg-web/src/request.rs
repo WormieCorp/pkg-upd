@@ -6,7 +6,7 @@
 use reqwest::blocking::Client;
 use reqwest::{header, Url};
 
-use crate::response::HtmlResponse;
+use crate::response::{BinaryResponse, HtmlResponse};
 
 /// The name of the application + the version, which should be sent with every
 /// request to the websites.
@@ -79,6 +79,22 @@ impl WebRequest {
             .send()?;
 
         Ok(HtmlResponse::new(response))
+    }
+
+    pub fn get_binary_response(
+        &self,
+        url: &str,
+    ) -> Result<BinaryResponse, Box<dyn std::error::Error>> {
+        let url = Url::parse(url)?;
+
+        let client = &self.client;
+
+        let response = client
+            .get(url)
+            .header(header::ACCEPT, "application/octet-stream")
+            .send()?;
+
+        Ok(BinaryResponse::new(response))
     }
 }
 

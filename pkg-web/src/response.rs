@@ -4,11 +4,14 @@
 //! Holds all supported types of response types, that can be used when creating
 //! a package.
 
+/// Contains code related to handling binary responses (normally downloading).
+mod binary;
 /// Contains code related to handling html responses.
 mod html;
 
 use std::collections::HashMap;
 
+pub use binary::BinaryResponse;
 pub use html::HtmlResponse;
 use lazy_static::lazy_static;
 use reqwest::blocking::Response;

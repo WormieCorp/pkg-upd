@@ -962,6 +962,7 @@ dependencies = [
  "pkg-version",
  "regex",
  "reqwest",
+ "rstest",
  "select",
  "semver",
 ]
