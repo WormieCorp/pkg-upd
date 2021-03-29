@@ -4,6 +4,7 @@
 //! Section responsible for allowing requests to be sent to remote locations.
 
 use reqwest::blocking::Client;
+use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{header, Url};
 
 use crate::response::{BinaryResponse, HtmlResponse};
@@ -84,15 +85,32 @@ impl WebRequest {
     pub fn get_binary_response(
         &self,
         url: &str,
+        etag: Option<&str>,
+        last_modified: Option<&str>,
     ) -> Result<BinaryResponse, Box<dyn std::error::Error>> {
         let url = Url::parse(url)?;
 
         let client = &self.client;
+        let headers = {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                header::ACCEPT,
+                HeaderValue::from_static("application/octet-stream"),
+            );
+            if let Some(etag) = etag {
+                headers.insert(header::IF_NONE_MATCH, HeaderValue::from_str(etag)?);
+            }
+            if let Some(last_modified) = last_modified {
+                headers.insert(
+                    header::IF_MODIFIED_SINCE,
+                    HeaderValue::from_str(last_modified)?,
+                );
+            }
 
-        let response = client
-            .get(url)
-            .header(header::ACCEPT, "application/octet-stream")
-            .send()?;
+            headers
+        };
+
+        let response = client.get(url).headers(headers).send()?;
 
         Ok(BinaryResponse::new(response))
     }

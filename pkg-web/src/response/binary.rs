@@ -8,9 +8,15 @@ use std::str::FromStr;
 
 use reqwest::blocking::Response;
 use reqwest::header::{HeaderMap, HeaderValue};
-use reqwest::{header, Url};
+use reqwest::{header, StatusCode, Url};
 
 use crate::WebResponse;
+
+#[derive(Debug, PartialEq)]
+pub enum BinaryResponseType {
+    Updated,
+    New(PathBuf),
+}
 
 pub struct BinaryResponse {
     response: Response,
@@ -94,7 +100,7 @@ fn get_from_disposition(headers: &HeaderMap<HeaderValue>) -> Option<String> {
 }
 
 impl WebResponse for BinaryResponse {
-    type ResponseContent = PathBuf;
+    type ResponseContent = BinaryResponseType;
 
     fn response(&self) -> &Response {
         &self.response
@@ -104,6 +110,11 @@ impl WebResponse for BinaryResponse {
         self,
         output: Option<&str>,
     ) -> Result<Self::ResponseContent, Box<dyn std::error::Error>> {
+        let status = self.response().status();
+        if status == StatusCode::NOT_MODIFIED {
+            return Ok(BinaryResponseType::Updated);
+        }
+
         let output = if let Some(output) = output {
             output.into()
         } else {
@@ -119,7 +130,7 @@ impl WebResponse for BinaryResponse {
 
         response.copy_to(&mut writer)?;
 
-        Ok(output)
+        Ok(BinaryResponseType::New(output))
     }
 }
 
@@ -203,17 +214,48 @@ mod tests {
         assert_eq!(file_name, None);
     }
 
-    #[test]
-    fn read_should_download_expected_file() {
+    #[rstest(
+        url,
+        fname,
+        case(
+            "https://github.com/cake-build/cake/releases/download/v1.1.0/Cake-bin-coreclr-v1.1.0.zip",
+            "Cake-bin-coreclr-v1.1.0.zip"
+        ),
+        case(
+            "https://sourceforge.net/projects/codeblocks/files/Binaries/20.03/Windows/codeblocks-20.03-setup.exe/download",
+             "codeblocks-20.03-setup.exe"
+        )
+    )]
+    fn read_should_download_expected_file(url: &str, fname: &str) {
         let work_dir = std::env::temp_dir();
         let request = WebRequest::create();
-        let mut response = request.get_binary_response("https://github.com/cake-build/cake/releases/download/v1.1.0/Cake-bin-coreclr-v1.1.0.zip").unwrap();
+        let mut response = request.get_binary_response(url, None, None).unwrap();
         response.set_work_dir(&work_dir);
-        let expected = work_dir.join("Cake-bin-coreclr-v1.1.0.zip");
+        let expected = work_dir.join(fname);
         let path = response.read(None).unwrap();
 
-        assert_eq!(path, expected);
+        assert_eq!(path, BinaryResponseType::New(expected.clone()));
 
         let _ = std::fs::remove_file(expected);
+    }
+
+    #[test]
+    fn read_should_return_already_updated_response_by_etag() {
+        let request = WebRequest::create();
+        let response = request.get_binary_response("https://github.com/codecov/codecov-exe/releases/download/1.13.0/codecov-linux-x64.zip", Some("\"e3d41332a09dd059961efade340c12da\""), None).unwrap();
+
+        let status = response.read(None).unwrap();
+
+        assert_eq!(status, BinaryResponseType::Updated)
+    }
+
+    #[test]
+    fn read_should_return_already_updated_response_by_last_modified() {
+        let request = WebRequest::create();
+        let response = request.get_binary_response("https://github.com/codecov/codecov-exe/releases/download/1.13.0/codecov-linux-x64.zip", None, Some("Tue, 16 Feb 2021 03:33:36 GMT")).unwrap();
+
+        let status = response.read(None).unwrap();
+
+        assert_eq!(status, BinaryResponseType::Updated);
     }
 }
