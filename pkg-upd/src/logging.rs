@@ -75,6 +75,12 @@ pub fn setup_logging<T: LogDataTrait>(log: &T) -> Result<(), Box<dyn std::error:
         log.level()
     };
 
+    let reqwest_level = if log.level() > &log::LevelFilter::Debug {
+        &log::LevelFilter::Debug
+    } else {
+        log.level()
+    };
+
     let cli_info = if log.level() > &log::LevelFilter::Info {
         fern::Dispatch::new().format(move |out, message, record| {
             let level = record.level();
@@ -92,6 +98,10 @@ pub fn setup_logging<T: LogDataTrait>(log: &T) -> Result<(), Box<dyn std::error:
     .filter(move |metadata| metadata.level() >= log::Level::Info)
     .level(*log.level())
     .level_for("html5ever", *html5ever_level)
+    .level_for("rustls::client::hs", *reqwest_level)
+    .level_for("rustls::client::tls13", *reqwest_level)
+    .level_for("tokio_util::codec::framed_impl", *reqwest_level)
+    .level_for("reqwest::blocking::wait", *reqwest_level)
     .chain(std::io::stdout());
     let cli_warn = fern::Dispatch::new()
         .format(move |out, message, record| {
@@ -129,6 +139,10 @@ pub fn setup_logging<T: LogDataTrait>(log: &T) -> Result<(), Box<dyn std::error:
         })
         .level(log::LevelFilter::Trace)
         .level_for("html5ever", log::LevelFilter::Info)
+        .level_for("rustls::client::hs", log::LevelFilter::Debug)
+        .level_for("rustls::client::tls13", log::LevelFilter::Debug)
+        .level_for("tokio_util::codec::framed_impl", log::LevelFilter::Debug)
+        .level_for("reqwest::blocking::wait", log::LevelFilter::Debug)
         .chain(fern::log_file(log.path())?);
 
     fern::Dispatch::new()
