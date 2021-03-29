@@ -61,17 +61,20 @@ impl WebRequest {
     /// the information set to the current application+version, a do not track
     /// header and a header requesting to upgrade insecure requests.
     pub fn create() -> WebRequest {
-        let client = Client::builder()
+        let mut client = Client::builder()
             .user_agent(APP_USER_AGENT)
             .default_headers(headers!(
                 header::ACCEPT_LANGUAGE => "en-US, en;q=0.8, *;q=0.5",
                 header::DNT => "1",
                 header::UPGRADE_INSECURE_REQUESTS => "1"
-            ))
-            .build()
-            .unwrap();
+            ));
+        if cfg!(windows) {
+            client = client.use_rustls_tls();
+        }
 
-        WebRequest { client }
+        WebRequest {
+            client: client.build().unwrap(),
+        }
     }
 
     /// Makes a request to a website and requesting the html at the location
