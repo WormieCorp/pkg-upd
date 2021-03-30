@@ -76,6 +76,9 @@ struct Arguments {
 
     #[structopt(flatten)]
     log: LogData,
+
+    #[structopt(long, global = true, env = "NO_COLOR")]
+    no_color: bool,
 }
 
 fn main() {
@@ -84,6 +87,9 @@ fn main() {
         yansi::Paint::disable();
     }
     let args = Arguments::from_args();
+    if args.no_color {
+        yansi::Paint::disable();
+    }
     logging::setup_logging(&args.log).expect("Unable to configure logging of the application!");
 
     if let Some(cmd) = args.cmd {
