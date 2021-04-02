@@ -6,10 +6,11 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
-use reqwest::blocking::Client;
+use reqwest::blocking::{Client, Response};
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{header, StatusCode, Url};
 
+use crate::errors::WebError;
 use crate::response::{BinaryResponse, HtmlResponse, ResponseType};
 
 /// The name of the application + the version, which should be sent with every
@@ -85,15 +86,16 @@ impl WebRequest {
     /// The `Ok` value should be an instance of [HtmlResponse], and the links in
     /// the response can be found by calling the
     /// [read](crate::response::HtmlResponse::read) function.
-    pub fn get_html_response(&self, url: &str) -> Result<HtmlResponse, Box<dyn std::error::Error>> {
-        let url = Url::parse(url)?;
+    pub fn get_html_response(&self, url: &str) -> Result<HtmlResponse, WebError> {
+        let url = Url::parse(url).map_err(|err| WebError::Other(err.to_string()))?;
 
         let client = &self.client;
 
         let response = client
             .get(url)
             .header(header::ACCEPT, ACCEPTED_TYPES["html"])
-            .send()?;
+            .send()
+            .map_err(|err| WebError::Request(err))?;
 
         Ok(HtmlResponse::new(response))
     }

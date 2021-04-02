@@ -9,6 +9,7 @@ use human_panic::setup_panic;
 use humanize_url::humanize_url;
 use log::{error, info};
 use pkg_upd::{log_data, logging};
+use pkg_web::errors::WebError;
 use pkg_web::response::ResponseType;
 use pkg_web::{LinkElement, WebRequest, WebResponse};
 use structopt::StructOpt;
@@ -155,7 +156,7 @@ fn parse_website(
     request: &WebRequest,
     url: Url,
     regex: Option<String>,
-) -> Result<(LinkElement, Vec<LinkElement>), Box<dyn std::error::Error>> {
+) -> Result<(LinkElement, Vec<LinkElement>), WebError> {
     let response = request.get_html_response(url.as_str())?;
 
     if let Some(ref regex) = regex {

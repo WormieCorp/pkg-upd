@@ -19,6 +19,7 @@ use reqwest::blocking::Response;
 use reqwest::StatusCode;
 
 use crate::elements::LinkType;
+use crate::errors::WebError;
 
 lazy_static! {
     static ref MIME_TYPES: HashMap<&'static str, LinkType> = {
@@ -61,10 +62,7 @@ impl<T: WebResponse> ResponseType<T> {
     /// ## Warning
     ///
     /// - Will panic if the response set is considered to be up to date.
-    pub fn read(
-        self,
-        option: Option<&str>,
-    ) -> Result<T::ResponseContent, Box<dyn std::error::Error>> {
+    pub fn read(self, option: Option<&str>) -> Result<T::ResponseContent, WebError> {
         match self {
             ResponseType::Updated(status) => panic!(
                 "Can not read an already updated response. Status Code: {}",
@@ -134,7 +132,7 @@ pub trait WebResponse {
     /// structure holding the necessary items found. This may return an
     /// error if the status code is a success code, or if the reading of the
     /// content failed.
-    fn read(self, re: Option<&str>) -> Result<Self::ResponseContent, Box<dyn std::error::Error>>;
+    fn read(self, re: Option<&str>) -> Result<Self::ResponseContent, WebError>;
 }
 
 #[cfg(test)]
@@ -163,10 +161,7 @@ mod tests {
         fn read(
             self,
             _: Option<&str>,
-        ) -> std::result::Result<
-            <Self as WebResponse>::ResponseContent,
-            std::boxed::Box<(dyn std::error::Error + 'static)>,
-        > {
+        ) -> std::result::Result<<Self as WebResponse>::ResponseContent, WebError> {
             unimplemented!()
         }
     }

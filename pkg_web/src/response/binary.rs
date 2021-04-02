@@ -10,6 +10,7 @@ use reqwest::blocking::Response;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{header, Url};
 
+use crate::response::WebError;
 use crate::WebResponse;
 
 /// Contains functions and items necessary for parsing and downloading binary
@@ -137,10 +138,7 @@ impl WebResponse for BinaryResponse {
     ///
     /// The `output` argument will be combined with the previously set work
     /// directory.
-    fn read(
-        self,
-        output: Option<&str>,
-    ) -> Result<Self::ResponseContent, Box<dyn std::error::Error>> {
+    fn read(self, output: Option<&str>) -> Result<Self::ResponseContent, WebError> {
         let output = if let Some(output) = output {
             output.into()
         } else {
@@ -151,10 +149,12 @@ impl WebResponse for BinaryResponse {
 
         let mut response = self.response;
 
-        let file = File::create(output.clone())?;
+        let file = File::create(output.clone()).map_err(|err| WebError::IoError(err))?;
         let mut writer = BufWriter::new(&file);
 
-        response.copy_to(&mut writer)?;
+        response
+            .copy_to(&mut writer)
+            .map_err(|err| WebError::Request(err))?;
 
         Ok(output)
     }
