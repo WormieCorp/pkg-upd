@@ -2,6 +2,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project
 #![windows_subsystem = "console"]
 
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
 use human_bytes::human_bytes;
@@ -117,17 +118,17 @@ fn main() {
 fn parse_website_lone(request: &WebRequest, url: Url, regex: Option<String>) {
     match parse_website(request, url, regex) {
         Ok((parent, elements)) => {
-            println!(
+            info!(
                 "Successfully parsed '{}'",
                 Color::Magenta.paint(parent.link)
             );
-            println!(
+            info!(
                 "Found {} links on the webpage!",
                 Color::Cyan.paint(elements.len())
             );
 
             for link in elements {
-                println!(
+                info!(
                     "{} (type: {}, title: {}, version: {}, text: {})",
                     Color::Magenta.paint(link.link),
                     Color::Cyan.paint(link.link_type),
@@ -146,8 +147,8 @@ fn parse_website_lone(request: &WebRequest, url: Url, regex: Option<String>) {
             }
         }
         Err(err) => {
-            eprintln!("Unable to parse the requested website!");
-            eprintln!("Error message: {}", err);
+            error!("Unable to parse the requested website!");
+            error!("Error message: {}", err);
         }
     }
 }
@@ -179,11 +180,8 @@ fn download_file_once(
         std::env::temp_dir()
     };
 
-    match download_file(request, url, &temp_dir, etag, last_modified) {
-        Err(err) => {
-            eprintln!("Unable to download file from. Error {}", err);
-        }
-        _ => {}
+    if let Err(err) = download_file(request, url, &temp_dir, etag, last_modified) {
+        error!("Unable to download the file. Error: {}", err);
     }
 }
 
@@ -230,24 +228,35 @@ fn download_file(
             info!("{} was downloaded!", file_name);
             info!("The following information was given by the server:");
             if !etag.is_empty() {
-                info!("  ETag: {}", etag.trim_matches('"'));
+                print_line("ETag", etag.trim_matches('"'));
             } else {
-                info!("  ETag: None");
+                print_line("ETag", "None");
             }
             if !last_modified.is_empty() {
-                info!("  Last Modified: {}", last_modified);
+                print_line("Last Modified", last_modified);
             } else {
-                info!("  Last Modified: None");
+                print_line("Last Modified", "None");
             }
             info!(
                 "The resulting file is {} long!",
-                human_bytes(result.metadata()?.len() as f64)
+                Color::Magenta.paint(human_bytes(result.metadata()?.len() as f64))
             );
 
             let _ = std::fs::remove_file(result);
         }
     }
     Ok(())
+}
+
+fn print_line<T: Display, V: Display>(name: T, value: V) {
+    let name_style = Color::Magenta.style();
+    let value_style = Color::Cyan.style();
+
+    info!(
+        "{:>16} : {}",
+        name_style.paint(name),
+        value_style.paint(value)
+    );
 }
 
 fn get_info<T: WebResponse>(response: &T) -> (String, String) {
