@@ -73,7 +73,7 @@ enum Commands {
 #[structopt(author = "AdmiringWorm <kim.nordmo@gmail.com>")]
 struct Arguments {
     #[structopt(subcommand)]
-    cmd: Option<Commands>,
+    cmd: Commands,
 
     #[structopt(flatten)]
     log: LogData,
@@ -93,23 +93,21 @@ fn main() {
     }
     logging::setup_logging(&args.log).expect("Unable to configure logging of the application!");
 
-    if let Some(cmd) = args.cmd {
-        let request = WebRequest::create();
-        match cmd {
-            Commands::Parse(args) => parse_website_lone(&request, args.url, args.regex),
-            Commands::Download(args) => {
-                let etag = if let Some(ref etag) = args.etag {
-                    Some(etag.as_str())
-                } else {
-                    None
-                };
-                let last_modified = if let Some(ref last_modified) = args.last_modified {
-                    Some(last_modified.as_ref())
-                } else {
-                    None
-                };
-                download_file_once(&request, args.url, etag, last_modified, args.work_dir)
-            }
+    let request = WebRequest::create();
+    match args.cmd {
+        Commands::Parse(args) => parse_website_lone(&request, args.url, args.regex),
+        Commands::Download(args) => {
+            let etag = if let Some(ref etag) = args.etag {
+                Some(etag.as_str())
+            } else {
+                None
+            };
+            let last_modified = if let Some(ref last_modified) = args.last_modified {
+                Some(last_modified.as_ref())
+            } else {
+                None
+            };
+            download_file_once(&request, args.url, etag, last_modified, args.work_dir)
         }
     }
 }
