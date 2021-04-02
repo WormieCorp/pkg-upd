@@ -44,6 +44,10 @@ jobs:
         with:
           command: test
           args: --release --all-features --locked
+      - name: Run cargo bloat
+        uses: orf/cargo-bloat-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
   coverage:
     runs-on: ${{ matrix.os }}
     strategy:
