@@ -69,8 +69,10 @@ enum Commands {
     Download(DownloadArguments),
 }
 
+/// Allows testing specific urls by either checking which links will be found
+/// on an HTML page, or if a file can be downloaded.
 #[derive(StructOpt)]
-#[structopt(author = "AdmiringWorm <kim.nordmo@gmail.com>")]
+#[structopt(author = "AdmiringWorm <kim.nordmo@gmail.com>", name = "pkg-web")]
 struct Arguments {
     #[structopt(subcommand)]
     cmd: Commands,

@@ -11,7 +11,7 @@ use yansi::Color;
 /// will be used by different package managers. Additionally shows the
 /// equivalent Semantic Version (as per Rust specifications).
 #[derive(StructOpt)]
-#[structopt(author = "AdmiringWorm <kim.nordmo@gmail.com>")]
+#[structopt(author = "AdmiringWorm <kim.nordmo@gmail.com>", name = "pkg-ver")]
 struct Arguments {
     /// The Versions to test what they would be transformed to (*multiple values
     /// can be specified*).
