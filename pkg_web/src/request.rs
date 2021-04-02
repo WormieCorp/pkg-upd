@@ -79,9 +79,7 @@ impl WebRequest {
     }
 
     /// Makes a request to a website and requesting the html at the location
-    /// without downloading the actual upstream content. THe function also
-    /// verifies that the returned response have the mime type set to
-    /// `text/html`, otherwise an error is returned.
+    /// without downloading the actual upstream content.
     ///
     /// The `Ok` value should be an instance of [HtmlResponse], and the links in
     /// the response can be found by calling the
@@ -97,7 +95,7 @@ impl WebRequest {
             .send()
             .map_err(|err| WebError::Request(err))?;
 
-        Ok(HtmlResponse::new(response))
+        handle_exit_code(response, |rsp| HtmlResponse::new(rsp))
     }
 
     /// Makes a request to a web endpoint and requests a result in the type of a
@@ -125,8 +123,8 @@ impl WebRequest {
         url: &str,
         etag: Option<&str>,
         last_modified: Option<&str>,
-    ) -> Result<ResponseType<BinaryResponse>, Box<dyn std::error::Error>> {
-        let url = Url::parse(url)?;
+    ) -> Result<ResponseType<BinaryResponse>, WebError> {
+        let url = Url::parse(url).map_err(|err| WebError::Other(err.to_string()))?;
 
         let client = &self.client;
         let headers = {
@@ -138,30 +136,52 @@ impl WebRequest {
             if let Some(etag) = etag {
                 let new_etag = format!("\"{}\"", etag.trim_matches('"'));
 
-                headers.insert(header::IF_NONE_MATCH, HeaderValue::from_str(&new_etag)?);
+                headers.insert(
+                    header::IF_NONE_MATCH,
+                    HeaderValue::from_str(&new_etag)
+                        .map_err(|err| WebError::Other(err.to_string()))?,
+                );
             }
             if let Some(last_modified) = last_modified {
                 headers.insert(
                     header::IF_MODIFIED_SINCE,
-                    HeaderValue::from_str(last_modified)?,
+                    HeaderValue::from_str(last_modified)
+                        .map_err(|err| WebError::Other(err.to_string()))?,
                 );
             }
 
             headers
         };
 
-        let response = client.get(url).headers(headers).send()?;
+        let response = client
+            .get(url)
+            .headers(headers)
+            .send()
+            .map_err(|err| WebError::Request(err))?;
         let status = response.status();
 
         if status == StatusCode::NOT_MODIFIED {
             Ok(ResponseType::Updated(status.as_u16()))
         } else {
-            Ok(ResponseType::New(
-                BinaryResponse::new(response),
-                status.as_u16(),
-            ))
+            handle_exit_code(response, |rsp| {
+                ResponseType::New(BinaryResponse::new(rsp), status.as_u16())
+            })
         }
     }
+}
+
+fn handle_exit_code<T, F: FnOnce(Response) -> T>(
+    response: Response,
+    creation: F,
+) -> Result<T, WebError> {
+    if !response.status().is_success() {
+        return match response.error_for_status() {
+            Err(err) => Err(WebError::Request(err)),
+            Ok(_) => unreachable!(),
+        };
+    }
+
+    Ok(creation(response))
 }
 
 #[cfg(test)]
@@ -191,14 +211,43 @@ mod tests {
     }
 
     #[test]
-    fn get_html_response_should_set_404_status_code() {
+    #[should_panic(expected = "Status(404)")]
+    fn get_html_response_should_give_error_on_404_status_code() {
         let request = WebRequest::create();
 
-        let response = request
+        let _ = request
             .get_html_response("https://httpbin.org/status/404")
             .unwrap();
+    }
 
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    #[test]
+    #[should_panic(expected = "Status(500)")]
+    fn get_html_response_should_give_error_on_error_response() {
+        let request = WebRequest::create();
+
+        let _ = request
+            .get_html_response("https://httpbin.org/status/500")
+            .unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "Status(404)")]
+    fn get_binary_response_should_give_error_on_404_status_code() {
+        let request = WebRequest::create();
+
+        let _ = request
+            .get_binary_response("https://httpbin.org/status/404", None, None)
+            .unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "Status(500)")]
+    fn get_binary_response_should_give_error_on_error_response() {
+        let request = WebRequest::create();
+
+        let _ = request
+            .get_binary_response("https://httpbin.org/status/500", None, None)
+            .unwrap();
     }
 
     #[test]

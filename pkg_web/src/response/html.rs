@@ -46,16 +46,6 @@ impl WebResponse for HtmlResponse {
     /// response do not have a successful status code, or if the reading of the
     /// body fails.
     fn read(self, re: Option<&str>) -> Result<Self::ResponseContent, WebError> {
-        {
-            let response = &self.response;
-            if !response.status().is_success() {
-                let response = self.response;
-                response
-                    .error_for_status()
-                    .map_err(|err| WebError::Request(err))?;
-                unreachable!();
-            }
-        }
         let response_url = self.response.url().clone();
 
         let parent_link = get_parent_link_element(&self);
@@ -293,17 +283,6 @@ mod tests {
         ];
 
         assert_eq!(links, expected_items)
-    }
-
-    #[test]
-    #[should_panic(expected = "Status(500)")]
-    fn read_should_return_error_on_error_response() {
-        let request = WebRequest::create();
-        let response = request.get_html_response("https://httpbin.org/status/500");
-
-        if let Ok(response) = response {
-            let _ = response.read(None).unwrap();
-        }
     }
 
     #[test]
