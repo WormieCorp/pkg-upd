@@ -67,7 +67,7 @@ pub fn setup_logging<T: LogDataTrait>(log: &T) -> Result<(), Box<dyn std::error:
         debug: Style::new(Color::Fixed(7)),
         info: Style::new(Color::Unset),
         warn: Style::new(Color::Fixed(208)).bold(),
-        error: Style::new(Color::Fixed(196)).bold(),
+        error: Style::new(Color::Red).bold(),
     };
     let html5ever_level = if log.level() > &log::LevelFilter::Info {
         &log::LevelFilter::Info
@@ -116,13 +116,12 @@ pub fn setup_logging<T: LogDataTrait>(log: &T) -> Result<(), Box<dyn std::error:
         .level(*log.level())
         .chain(std::io::stderr());
 
+    if log.path().exists() {
+        let _ = std::fs::remove_file(log.path());
+    }
+
     let file_log = fern::Dispatch::new()
         .format(move |out, message, record| {
-            let enabled = Paint::is_enabled();
-            if enabled {
-                Paint::disable();
-            }
-
             out.finish(format_args!(
                 "[{}] {} T[{:?}] [{}] {}:{}: {}",
                 chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.6f %:z"),
@@ -131,11 +130,8 @@ pub fn setup_logging<T: LogDataTrait>(log: &T) -> Result<(), Box<dyn std::error:
                 record.module_path().unwrap_or("<unnamed>"),
                 record.file().unwrap_or("<unnamed>"),
                 record.line().unwrap_or(0),
-                message
+                Paint::wrapping(message).wrap()
             ));
-            if enabled {
-                Paint::enable();
-            }
         })
         .level(log::LevelFilter::Trace)
         .level_for("html5ever", log::LevelFilter::Info)
