@@ -142,7 +142,9 @@ impl WebResponse for BinaryResponse {
         let output = if let Some(output) = output {
             output.into()
         } else {
-            self.file_name().unwrap() // TODO: return error result on failure
+            self.file_name().ok_or(WebError::Other(
+                "Unable to extract file name request".into(),
+            ))?
         };
 
         let output = self.work_dir.join(output);
