@@ -50,7 +50,7 @@ impl WebResponse for HtmlResponse {
 
         let parent_link = get_parent_link_element(&self);
 
-        let body = self.response.text().map_err(|err| WebError::Request(err))?;
+        let body = self.response.text().map_err(WebError::Request)?;
         let links = get_link_elements(body, response_url, re)?;
 
         Ok((parent_link, links))

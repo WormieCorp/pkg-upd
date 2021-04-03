@@ -6,8 +6,6 @@
 use std::error::Error;
 use std::fmt::Display;
 
-use reqwest;
-
 /// Common error collector for different errors that can be found in the
 /// library.
 #[derive(Debug)]

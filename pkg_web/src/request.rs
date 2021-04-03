@@ -94,9 +94,9 @@ impl WebRequest {
             .get(url)
             .header(header::ACCEPT, ACCEPTED_TYPES["html"])
             .send()
-            .map_err(|err| WebError::Request(err))?;
+            .map_err(WebError::Request)?;
 
-        handle_exit_code(response, |rsp| HtmlResponse::new(rsp))
+        handle_exit_code(response, HtmlResponse::new)
     }
 
     /// Makes a request to a web endpoint and requests a result in the type of a
@@ -158,7 +158,7 @@ impl WebRequest {
             .get(url.clone())
             .headers(headers)
             .send()
-            .map_err(|err| WebError::Request(err))?;
+            .map_err(WebError::Request)?;
         let status = response.status();
 
         if status == StatusCode::NOT_MODIFIED {

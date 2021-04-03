@@ -145,9 +145,8 @@ impl WebResponse for BinaryResponse {
         let output = if let Some(output) = output {
             output.into()
         } else {
-            self.file_name().ok_or(WebError::Other(
-                "Unable to extract file name request".into(),
-            ))?
+            self.file_name()
+                .ok_or_else(|| WebError::Other("Unable to extract file name request".into()))?
         };
 
         let output = self.work_dir.join(output);
@@ -156,7 +155,7 @@ impl WebResponse for BinaryResponse {
 
         info!("Downloading '{}' to '{}'", self.url, output.display());
 
-        let file = File::create(output.clone()).map_err(|err| WebError::IoError(err))?;
+        let file = File::create(output.clone()).map_err(WebError::IoError)?;
         let mut writer = BufWriter::new(&file);
 
         match response.copy_to(&mut writer) {
