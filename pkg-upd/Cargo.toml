@@ -23,12 +23,15 @@ human-panic = { git = "https://github.com/WormieCorp/human-panic", branch = "add
 human_bytes = "0.2.1"
 lazy_static = "1.4.0"
 log = "0.4.14"
+md-5 = "0.9.1"
 pkg-data = { path = "../pkg-data" }
 pkg-license = { path = "../pkg-license" }
 pkg-version = { path = "../pkg-version", features = ["serialize"] }
 pkg_web = { path = "../pkg_web" }
 serde = { version = "1.0.125", optional = true }
 serde_json = { version = "1.0.64", optional = true }
+sha-1 = "0.9.4"
+sha2 = "0.9.3"
 structopt = "0.3.21"
 toml = { version = "0.5.8", optional = true }
 url = { version = "2.2.1", features = ["serde"] }
