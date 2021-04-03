@@ -56,17 +56,19 @@ fn should_download_file_and_output_message() -> Result<(), Box<dyn std::error::E
     .env("NO_COLOR", "true");
 
     cmd.assert().success().stdout(
-        predicate::str::contains("The web server responded with status: 200!")
-            .and(predicate::str::contains("Downloading github.com/"))
+        predicate::str::contains("The web server responded with status: 200 OK!")
+            .and(predicate::str::contains("Downloading 'https://github.com/"))
+            .and(predicate::str::contains("Successfully downloaded"))
             .and(predicate::str::contains(
-                "codecov-linux-x64.zip was downloaded!",
+                "ETag : a9da76dd5aa96fcee6de685cc1996075",
             ))
             .and(predicate::str::contains(
-                "ETag: a9da76dd5aa96fcee6de685cc1996075",
+                "Last Modified : Wed, 10 Jun 2020 06:14:18 GMT",
             ))
             .and(predicate::str::contains(
-                "Last Modified: Wed, 10 Jun 2020 06:14:18 GMT",
+                "Checksum : bed13834d3203a1511128d19a9595c53364a0ab9f4d7926e6343c41b48b0f6e5",
             ))
+            .and(predicate::str::contains("Checksum Type : SHA256"))
             .and(predicate::str::contains(
                 "The resulting file is 15.6 MB long!",
             )),
@@ -89,7 +91,7 @@ fn should_not_download_up_to_date_file() -> Result<(), Box<dyn std::error::Error
         .env("NO_COLOR", "true");
 
     cmd.assert().success().stdout(
-        predicate::str::contains("The web server responded with status: 304!")
+        predicate::str::contains("The web server responded with status: 304 Not Modified!")
             .and(predicate::str::contains("No update is necessary!")),
     );
 

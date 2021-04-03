@@ -162,7 +162,7 @@ impl WebRequest {
         let status = response.status();
 
         if status == StatusCode::NOT_MODIFIED {
-            info!("The web server responded with status: {}", status);
+            info!("The web server responded with status: {}!", status);
 
             Ok(ResponseType::Updated(status.as_u16()))
         } else {
