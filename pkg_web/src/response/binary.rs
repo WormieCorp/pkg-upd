@@ -6,6 +6,7 @@ use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
+use log::{info, warn};
 use reqwest::blocking::Response;
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{header, Url};
@@ -21,6 +22,7 @@ use crate::WebResponse;
 #[derive(Debug)]
 pub struct BinaryResponse {
     response: Response,
+    url: Url,
     work_dir: PathBuf,
 }
 
@@ -34,9 +36,10 @@ impl BinaryResponse {
     /// Creates a new instance of the [BinaryResponse] structure to hold the
     /// current response, and allow downloading the remote file from the content
     /// response.
-    pub fn new(response: Response) -> BinaryResponse {
+    pub fn new(response: Response, url: Url) -> BinaryResponse {
         BinaryResponse {
             response,
+            url,
             work_dir: PathBuf::new(),
         }
     }
@@ -151,14 +154,21 @@ impl WebResponse for BinaryResponse {
 
         let mut response = self.response;
 
+        info!("Downloading '{}' to '{}'", self.url, output.display());
+
         let file = File::create(output.clone()).map_err(|err| WebError::IoError(err))?;
         let mut writer = BufWriter::new(&file);
 
-        response
-            .copy_to(&mut writer)
-            .map_err(|err| WebError::Request(err))?;
-
-        Ok(output)
+        match response.copy_to(&mut writer) {
+            Err(err) => {
+                warn!("Failed to download '{}'", self.url);
+                Err(WebError::Request(err))
+            }
+            Ok(_) => {
+                info!("Successfully downloaded '{}'", output.display());
+                Ok(output)
+            }
+        }
     }
 }
 

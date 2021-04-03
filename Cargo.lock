@@ -508,15 +508,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e291962efb61d1f7eba1e9cf6ef76130ee31e26ee9052c9eb10df2866388b47"
 
 [[package]]
-name = "humanize-url"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e29fb1ea68286265a32e3c5542031d0eb815ae149151404400e936fd4f3096d"
-dependencies = [
- "unrestrictive-url",
-]
-
-[[package]]
 name = "hyper"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1031,7 +1022,6 @@ dependencies = [
  "fern",
  "human-panic",
  "human_bytes",
- "humanize-url",
  "lazy_static",
  "log",
  "pkg-data",
@@ -1670,26 +1660,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "thiserror"
-version = "1.0.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e0f4a65597094d4483ddaed134f409b2cb7c1beccf25201a9f73c719254fa98e"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.24"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7765189610d8241a44529806d6fd1f2e0a08734313a35d5b3a556f92b381f3c0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "time"
 version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1853,16 +1823,6 @@ name = "unicode-xid"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
-
-[[package]]
-name = "unrestrictive-url"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba08b1f48601187e2ec623fa420542a26d7baf8c6854b7fb82890ea3166b9f5a"
-dependencies = [
- "thiserror",
- "url",
-]
 
 [[package]]
 name = "untrusted"

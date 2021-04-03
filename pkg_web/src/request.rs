@@ -6,6 +6,7 @@
 use std::collections::HashMap;
 
 use lazy_static::lazy_static;
+use log::info;
 use reqwest::blocking::{Client, Response};
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{header, StatusCode, Url};
@@ -154,17 +155,19 @@ impl WebRequest {
         };
 
         let response = client
-            .get(url)
+            .get(url.clone())
             .headers(headers)
             .send()
             .map_err(|err| WebError::Request(err))?;
         let status = response.status();
 
         if status == StatusCode::NOT_MODIFIED {
+            info!("The web server responded with status: {}", status);
+
             Ok(ResponseType::Updated(status.as_u16()))
         } else {
-            handle_exit_code(response, |rsp| {
-                ResponseType::New(BinaryResponse::new(rsp), status.as_u16())
+            handle_exit_code(response, move |rsp| {
+                ResponseType::New(BinaryResponse::new(rsp, url), status.as_u16())
             })
         }
     }
@@ -180,6 +183,11 @@ fn handle_exit_code<T, F: FnOnce(Response) -> T>(
             Ok(_) => unreachable!(),
         };
     }
+
+    info!(
+        "The web server responded with status: {}!",
+        response.status()
+    );
 
     Ok(creation(response))
 }

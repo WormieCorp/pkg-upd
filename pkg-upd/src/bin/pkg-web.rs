@@ -7,7 +7,6 @@ use std::path::{Path, PathBuf};
 
 use human_bytes::human_bytes;
 use human_panic::setup_panic;
-use humanize_url::humanize_url;
 use log::{error, info};
 use pkg_upd::{log_data, logging};
 use pkg_web::errors::WebError;
@@ -149,6 +148,7 @@ fn parse_website_lone(request: &WebRequest, url: Url, regex: Option<String>) {
         Err(err) => {
             error!("Unable to parse the requested website!");
             error!("Error message: {}", err);
+            std::process::exit(1);
         }
     }
 }
@@ -182,6 +182,7 @@ fn download_file_once(
 
     if let Err(err) = download_file(request, url, &temp_dir, etag, last_modified) {
         error!("Unable to download the file. Error: {}", err);
+        std::process::exit(1);
     }
 }
 
@@ -195,37 +196,13 @@ fn download_file(
     let response = request.get_binary_response(url.as_str(), etag, last_modified)?;
 
     match response {
-        ResponseType::Updated(status) => {
-            info!(
-                "The web server responded with status: {}!",
-                Color::Cyan.paint(status)
-            );
+        ResponseType::Updated(_) => {
             info!("No update is necessary!");
         }
-        ResponseType::New(mut response, status) => {
-            info!(
-                "The web server responded with status: {}!",
-                Color::Cyan.paint(status)
-            );
-            let file_name = {
-                let file_name = response.file_name();
-                if file_name.is_none() {
-                    error!("We could not parse the file name! Aborting...");
-                    std::process::exit(1);
-                }
-                file_name.unwrap()
-            };
-
-            info!(
-                "Downloading {} to: {}!",
-                humanize_url(url.as_str()).unwrap(),
-                work_dir.join(&file_name).display()
-            );
-
+        ResponseType::New(mut response, _) => {
             response.set_work_dir(work_dir);
             let (etag, last_modified) = get_info(&response);
             let result = response.read(None)?;
-            info!("{} was downloaded!", file_name);
             info!("The following information was given by the server:");
             if !etag.is_empty() {
                 print_line("ETag", etag.trim_matches('"'));
@@ -239,7 +216,7 @@ fn download_file(
             }
             info!(
                 "The resulting file is {} long!",
-                Color::Magenta.paint(human_bytes(result.metadata()?.len() as f64))
+                Color::Cyan.paint(human_bytes(result.metadata()?.len() as f64))
             );
 
             let _ = std::fs::remove_file(result);
