@@ -57,7 +57,7 @@ impl ScriptRunner for PowershellRunner {
         let runner_data = serde_json::to_string(&data.to_runner_data()).unwrap();
         let script = script.canonicalize().unwrap();
         let override_script = if cfg!(windows) {
-            "Set-ExecutionPolicy Bypass -Scope Process;"
+            "Set-ExecutionPolicy Bypass -Scope Process -Force;"
         } else {
             ""
         };
@@ -81,7 +81,7 @@ impl ScriptRunner for PowershellRunner {
             .env("POWERSHELL_TELEMETRY_OPTOUT", "1")
             .args(&[
                 "-ExecutionPolicy",
-                "RemoteSigned",
+                "Bypass",
                 "-NoProfile",
                 "-NonInteractive",
                 "-Command",
@@ -146,8 +146,9 @@ impl ScriptRunner for PowershellRunner {
 
             if fail {
                 return Err(format!(
-                    "An exception occurred when running the PowerShell script!\n{}",
-                    stderr
+                    "An exception occurred when running the PowerShell script!\n{}\n\nSTDOUT: {}",
+                    stderr,
+                    String::from_utf8_lossy(&cmd.stdout)
                 ));
             }
         }
