@@ -25,7 +25,7 @@ jobs:
           override: true
       - uses: Swatinem/rust-cache@v1
         with:
-          key: ${{ steps.toolchain.outputs.rustc }}-${{ steps.toolchain.outputs.rustc_hash }}-${{ matrix.os }}-${{ hashFiles('Cargo.lock') }}
+          key: ${{ matrix.os }}-${{ hashFiles('Cargo.toml') }}
       - name: Build projects with all features
         run: cargo build --release --all-features --locked
       - name: Upload artifacts
@@ -60,7 +60,7 @@ jobs:
           components: llvm-tools-preview
       - uses: Swatinem/rust-cache@v1
         with:
-          key: ${{ steps.toolchain.outputs.rustc }}-${{ steps.toolchain.outputs.rustc_hash }}-${{ matrix.os }}-${{ hashFiles('Cargo.lock') }}
+          key: ${{ matrix.os }}-${{ hashFiles('Cargo.toml') }}
       - name: Run unit tests with coverage report
         uses: Swatinem/fucov@v1
       - name: Upload coverage report

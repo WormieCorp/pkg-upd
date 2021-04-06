@@ -20,7 +20,7 @@ jobs:
           override: true
       - uses: Swatinem/rust-cache@v1
         with:
-          key: ${{ steps.toolchain.outputs.rustc }}-${{ steps.toolchain.outputs.rustc_hash }}-${{ matrix.os }}-${{ hashFiles('Cargo.lock') }}
+          key: ${{ matrix.os }}-${{ hashFiles('Cargo.toml') }}
       - uses: actions-rs/cargo@v1
         with:
           command: clean
