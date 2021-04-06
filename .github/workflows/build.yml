@@ -41,11 +41,15 @@ jobs:
             target/release/aer-web
             target/release/*.bin
             target/release/*.exe
-      - name: Test projects with all features
-        run: |
-          Set-ExecutionPolicy RemoteSigned -Force
-          cargo test --release --all-features --locked
+      - name: Set execution policy
+        if: ${{ runner.os == 'Windows' }}
+        run: Set-ExecutionPolicy RemoteSigned -Force
         shell: pwsh
+      - name: Test projects with all features
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --release --all-features --locked
   coverage:
     runs-on: ${{ matrix.os }}
     strategy:
