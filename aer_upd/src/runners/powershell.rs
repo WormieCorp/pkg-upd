@@ -81,7 +81,7 @@ impl ScriptRunner for PowershellRunner {
             .env("POWERSHELL_TELEMETRY_OPTOUT", "1")
             .args(&[
                 "-ExecutionPolicy",
-                "Bypass",
+                "RemoteSigned",
                 "-NoProfile",
                 "-NonInteractive",
                 "-Command",
