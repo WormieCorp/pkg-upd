@@ -44,6 +44,11 @@ struct DownloadArguments {
     /// The url of the binary file to download.
     url: Url,
 
+    /// Keep any downloaded file instead of the normal procedure of deleting
+    /// them at the end validation.
+    #[structopt(long)]
+    keep_files: bool,
+
     /// The etag that will be matched against the download location. If matched
     /// and the server returns a Not Modified response, then no file will be
     /// downloaded.
@@ -274,7 +279,9 @@ fn download_file(request: WebRequest, args: DownloadArguments) -> Result<(), Web
 
             info!("The resulting file is {} long!", Color::Cyan.paint(len));
 
-            let _ = std::fs::remove_file(result);
+            if !args.keep_files {
+                let _ = std::fs::remove_file(result);
+            }
         }
     }
 
