@@ -146,9 +146,8 @@ impl ScriptRunner for PowershellRunner {
 
             if fail {
                 return Err(format!(
-                    "An exception occurred when running the PowerShell script!\n{}\n\nSTDOUT: {}",
-                    stderr,
-                    String::from_utf8_lossy(&cmd.stdout)
+                    "An exception occurred when running the PowerShell script!\n{}",
+                    stderr
                 ));
             }
         }
