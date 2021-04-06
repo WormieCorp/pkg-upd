@@ -42,6 +42,7 @@ jobs:
         run: |
           if ($IsWindows) { Set-ExecutionPolicy RemoteSigned -Force }
           cargo test --release --all-features --locked
+        shell: pwsh
   coverage:
     runs-on: ${{ matrix.os }}
     strategy:
