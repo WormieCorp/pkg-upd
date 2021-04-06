@@ -57,7 +57,7 @@ impl ScriptRunner for PowershellRunner {
         let runner_data = serde_json::to_string(&data.to_runner_data()).unwrap();
         let script = script.canonicalize().unwrap();
         let override_script = if cfg!(windows) {
-            "Import-Module Microsoft.PowerShell.Security; Import-Module \
+            "Import-Module Microsoft.PowerShell.Security 3>$null; Import-Module 3>$null \
              Microsoft.PowerShell.Utility; Set-ExecutionPolicy Bypass -Scope Process -Force;"
         } else {
             ""
