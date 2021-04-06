@@ -79,7 +79,13 @@ impl ScriptRunner for PowershellRunner {
         let cmd = Command::new(path)
             .current_dir(cwd)
             .env("POWERSHELL_TELEMETRY_OPTOUT", "1")
-            .args(&["-NoProfile", "-NonInteractive", "-Command"])
+            .args(&[
+                "-ExecutionPolicy",
+                "Bypass",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+            ])
             .arg(runner_template)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())

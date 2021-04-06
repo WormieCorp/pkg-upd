@@ -42,7 +42,6 @@ jobs:
             target/release/*.bin
             target/release/*.exe
       - name: Test projects with all features
-        if: ${{ runner.os != 'Windows' }} # Can't get powershell runner to work, due to execution policies
         uses: actions-rs/cargo@v1
         with:
           command: test
