@@ -40,7 +40,7 @@ jobs:
             target/release/*.exe
       - name: Test projects with all features
         run: |
-          Set-ExecutionPolicy RemoteSigned -Force
+          if ($IsWindows) { Set-ExecutionPolicy RemoteSigned -Force }
           cargo test --release --all-features --locked
   coverage:
     runs-on: ${{ matrix.os }}
