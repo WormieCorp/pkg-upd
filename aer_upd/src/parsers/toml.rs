@@ -290,7 +290,7 @@ mod tests {
             pkg.updater_mut().set_chocolatey({
                 let mut choco = ChocolateyUpdaterData::new();
                 choco.embedded = true;
-                choco._type = ChocolateyUpdaterType::Archive;
+                choco.updater_type = ChocolateyUpdaterType::Archive;
                 choco.parse_url = Some(ChocolateyParseUrl::UrlWithRegex {
                     url: Url::parse("https://sourceforge.net/projects/astyle/files/astyle/")
                         .unwrap(),
