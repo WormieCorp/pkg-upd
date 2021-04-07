@@ -28,16 +28,20 @@ struct Arguments {
 
     #[structopt(flatten)]
     log: LogData,
+
+    /// Disable the usage of colors when outputting text to the console.
+    #[structopt(long, global = true, env = "NO_COLOR")]
+    no_color: bool,
 }
 
 fn main() {
     #[cfg(feature = "human")]
     setup_panic!();
-    if cfg!(windows) && !Paint::enable_windows_ascii() {
+    let args = Arguments::from_args();
+    if args.no_color || (cfg!(windows) && !Paint::enable_windows_ascii()) {
         Paint::disable();
     }
 
-    let args = Arguments::from_args();
     logging::setup_logging(&args.log).expect("Unable to configure logging of the application!");
 
     info!(

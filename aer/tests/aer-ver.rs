@@ -64,7 +64,8 @@ fn testing_multiple_versions() -> Result<(), Box<dyn std::error::Error>> {
     let mut cmd = Command::cargo_bin("aer-ver")?;
     let log_path = LOG_DIR.join("aer-ver-tests-multiple.log");
 
-    cmd.args(&["3.2.1", "5.2-alpha.5", "--log", log_path.to_str().unwrap()]);
+    cmd.args(&["3.2.1", "5.2-alpha.5", "--log", log_path.to_str().unwrap()])
+        .env("NO_COLOR", "true");
 
     cmd.assert().success().stdout(predicate::eq(
         "Checking 2 versions...
