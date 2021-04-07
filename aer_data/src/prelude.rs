@@ -2,7 +2,7 @@
 // Licensed under the MIT license. See LICENSE.txt file in the project
 
 pub use aer_license::LicenseType;
-pub use aer_version::{SemVersion, Versions};
+pub use aer_version::{FixVersion, SemVersion, Versions};
 pub use url::Url;
 
 pub use crate::metadata::{Description, PackageMetadata};

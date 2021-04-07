@@ -5,11 +5,11 @@ use std::fmt::Display;
 
 use aer::{log_data, logging};
 use aer_upd::data::chocolatey::ChocoVersion;
-use aer_upd::data::SemVersion;
+use aer_upd::data::{FixVersion, SemVersion};
 #[cfg(feature = "human")]
 use human_panic::setup_panic;
 use lazy_static::lazy_static;
-use log::info;
+use log::{error, info};
 use structopt::StructOpt;
 use yansi::{Color, Paint, Style};
 
@@ -32,6 +32,11 @@ struct Arguments {
     /// Disable the usage of colors when outputting text to the console.
     #[structopt(long, global = true)]
     no_color: bool,
+
+    /// Also display what fix version would be created (if the type allows fix
+    /// versions).
+    #[structopt(long)]
+    with_fix_version: bool,
 }
 
 fn main() {
@@ -65,11 +70,16 @@ fn main() {
         println!(); // We don't need to add an empty line in the log file
         print_line("Raw Version", &version);
         println!();
-        let choco = ChocoVersion::parse(&version);
-        if let Ok(choco) = choco {
+        if let Ok(mut choco) = ChocoVersion::parse(&version) {
             print_line("Chocolatey", &choco);
-            let semver: SemVersion = choco.into();
+            let semver: SemVersion = choco.clone().into();
             print_line("SemVer from Choco", semver);
+            if args.with_fix_version {
+                match choco.add_fix() {
+                    Ok(_) => print_line("Chocolatey Fix", &choco),
+                    Err(err) => error!("An error occurred while creating fix version: {}", err),
+                }
+            }
         } else {
             print_line("Chocolatey", "None");
             print_line("SemVer from Choco", "None");
@@ -79,8 +89,14 @@ fn main() {
         let semver = SemVersion::parse(&version);
         if let Ok(semver) = semver {
             print_line("SemVer", &semver);
-            let choco: ChocoVersion = semver.into();
-            print_line("Choco from SemVer", choco);
+            let mut choco: ChocoVersion = semver.into();
+            print_line("Choco from SemVer", &choco);
+            if args.with_fix_version {
+                match choco.add_fix() {
+                    Ok(_) => print_line("Chocolatey Fix", &choco),
+                    Err(err) => error!("An error occurred while creating fix version: {}", err),
+                }
+            }
         } else {
             print_line("SemVer", "None");
             print_line("Choco from SemVer", "None");

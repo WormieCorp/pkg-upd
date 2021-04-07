@@ -37,6 +37,11 @@ fn main() {
     println!("\n{:>20} => {}", "4.2", choco);
     chocos.push(choco);
 
+    let mut choco = ChocoVersion::parse("1.0-alpha").unwrap();
+    choco.add_fix().unwrap();
+    println!("{:>20} => {}", "1.0-alpha", choco);
+    chocos.push(choco);
+
     println!("And then converting all of the choco versions back to semver!");
 
     for choco in chocos {

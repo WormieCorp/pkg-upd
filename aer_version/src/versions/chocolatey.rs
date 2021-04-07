@@ -9,12 +9,22 @@ use std::fmt::Display;
 
 use semver::Identifier;
 #[cfg(feature = "serialize")]
-use serde::de::{self, Deserialize, Deserializer, Visitor};
+use serde::de::{self, Visitor};
 #[cfg(feature = "serialize")]
-use serde::ser::{Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::{FixVersion, SemVersion, SemanticVersionError};
 
+#[allow(clippy::inconsistent_digit_grouping)] // We want it to be shown in the ISO date format
+const FIX_THRESHOLD: u32 = 2007_01_01;
+
+/// Holds the relevant portions of a version that is compatible with the
+/// chocolatey package manager.
+///
+/// This structure also handles parsing different kind of versions and making
+/// these compatible with chocolatey, converting between chocolatey and semver
+/// as well as allowing fix versions to be created for both stable and unstable
+/// versions.
 #[derive(Default, Debug, Clone, Eq)]
 pub struct ChocoVersion {
     major: u8,
@@ -27,6 +37,8 @@ pub struct ChocoVersion {
 }
 
 impl ChocoVersion {
+    /// Creates a new instance of the [ChocoVersion] structure with the major
+    /// and minor version set to the specified values (`major.minor`).
     pub fn new(major: u8, minor: u8) -> ChocoVersion {
         ChocoVersion {
             major,
@@ -35,18 +47,26 @@ impl ChocoVersion {
         }
     }
 
+    /// Creates a new instance of the [ChocoVersion] structure with the
+    /// specified major, minor and patch versions (`major.minor.patch`).
     pub fn with_patch(major: u8, minor: u8, patch: u8) -> ChocoVersion {
         let mut choco = ChocoVersion::new(major, minor);
         choco.set_patch(patch);
         choco
     }
 
+    /// Creates a new instance of the [ChocoVersion] structure with the
+    /// specified major, minor, patch and build versions
+    /// (`major.minor.patch.build`).
     pub fn with_build(major: u8, minor: u8, patch: u8, build: u32) -> ChocoVersion {
         let mut choco = ChocoVersion::with_patch(major, minor, patch);
         choco.set_build(build);
         choco
     }
 
+    /// Parses the specified string reference and tries to extract a new
+    /// instance of [ChocoVersion]. Returns a failure if the parsing of the
+    /// string was not successful.
     pub fn parse(val: &str) -> Result<ChocoVersion, Box<dyn std::error::Error>> {
         if val.is_empty() {
             return Err(Box::new(SemanticVersionError::ParseError(
@@ -126,10 +146,12 @@ impl ChocoVersion {
         Ok(result)
     }
 
+    /// Specifically sets the patch version (third part of the version).
     pub fn set_patch(&mut self, patch: u8) {
         self.patch = Some(patch);
     }
 
+    /// Specifically sets the build version (fourth part of the version).
     pub fn set_build(&mut self, build: u32) {
         if self.patch.is_none() {
             self.patch = Some(0);
@@ -138,10 +160,15 @@ impl ChocoVersion {
         self.build = Some(build);
     }
 
+    /// Sets and replaces the pre-release part of the version, without doing any
+    /// parsing.
     pub fn set_prerelease(&mut self, pre: Vec<Identifier>) {
         self.pre_release = pre;
     }
 
+    /// Sets and replaces the pre-release part of the version, without doing any
+    /// parsing. Will move the current [ChocoVersion] instance to a new
+    /// instance.
     pub fn with_prerelease(mut self, pre: Vec<Identifier>) -> Self {
         self.set_prerelease(pre);
         self
@@ -186,14 +213,39 @@ impl PartialEq for ChocoVersion {
     }
 }
 
+fn num_is_fix<T: std::cmp::Ord + From<u32>>(num: T) -> bool {
+    num.ge(&T::from(FIX_THRESHOLD))
+}
+
 impl FixVersion for ChocoVersion {
+    fn is_fix_version(&self) -> bool {
+        if let Some(build) = self.build {
+            // We will assume it is a fix version if the build part is higher than the
+            // threshold
+            num_is_fix(build)
+        } else if let Some(Identifier::Numeric(num)) = self.pre_release.last() {
+            num_is_fix(*num)
+        } else {
+            false
+        }
+    }
+
     fn add_fix(&mut self) -> Result<(), std::num::ParseIntError> {
-        const THRESHOLD: u32 = 20070101;
-        if self.build.unwrap_or(THRESHOLD) >= THRESHOLD {
+        if self.build.is_none() || self.is_fix_version() {
             let fix = format!("{}", chrono::Local::today().format("%Y%m%d"));
             let num_fix = fix.parse()?;
 
-            self.set_build(num_fix);
+            if self.pre_release.is_empty() {
+                self.set_build(num_fix);
+            } else if let Some(Identifier::Numeric(num)) = self.pre_release.last_mut() {
+                if *num >= FIX_THRESHOLD as u64 {
+                    *num = num_fix as u64;
+                } else {
+                    self.pre_release.push(Identifier::Numeric(num_fix as u64));
+                }
+            } else {
+                self.pre_release.push(Identifier::Numeric(num_fix as u64));
+            }
         }
 
         Ok(())
@@ -437,12 +489,12 @@ impl Display for ChocoVersion {
         for pre in &self.pre_release {
             match pre {
                 Identifier::Numeric(num) => {
-                    if prev_alpha {
+                    if prev_alpha && !num_is_fix(*num) {
                         write!(f, "{:04}", num)?;
-                        prev_alpha = false;
                     } else {
                         write!(f, "-{:04}", num)?;
                     }
+                    prev_alpha = false;
                 }
                 num => {
                     write!(f, "-{}", num)?;
@@ -516,6 +568,34 @@ mod tests {
     }
 
     #[test]
+    fn is_fix_version_should_be_true_on_high_build_version() {
+        let version = ChocoVersion::parse("3.5.2.20100506").unwrap();
+
+        assert_eq!(version.is_fix_version(), true);
+    }
+
+    #[test]
+    fn is_fix_version_should_be_false_on_empty_build_version() {
+        let version = ChocoVersion::parse("2.2.1").unwrap();
+
+        assert_eq!(version.is_fix_version(), false);
+    }
+
+    #[test]
+    fn is_fix_version_should_be_false_on_non_high_build_version() {
+        let version = ChocoVersion::parse("3.2.6.55").unwrap();
+
+        assert_eq!(version.is_fix_version(), false);
+    }
+
+    #[test]
+    fn is_fix_version_should_be_true_on_prerelease_fix_version() {
+        let version = ChocoVersion::parse("5.2-beta-20210407").unwrap();
+
+        assert_eq!(version.is_fix_version(), true);
+    }
+
+    #[test]
     fn add_fix_should_create_correct_fix_version() {
         let mut version = ChocoVersion::new(2, 1);
         version.add_fix().unwrap();
@@ -546,6 +626,39 @@ mod tests {
         let expected = format!("3.3.0.{}", chrono::Local::now().format("%Y%m%d"));
 
         let actual = version.to_string();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn add_fix_should_create_prerelease_fix_version() {
+        let mut version = ChocoVersion::parse("3.1.1-alpha").unwrap();
+        version.add_fix().unwrap();
+        let expected = format!("3.1.1-alpha-{}", chrono::Local::now().format("%Y%m%d"));
+
+        let actual = format!("{}", version);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn add_fix_should_replace_old_prelease_date_fix_with_new_date() {
+        let mut version = ChocoVersion::parse("5.1.7-ceta-20100602").unwrap();
+        version.add_fix().unwrap();
+        let expected = format!("5.1.7-ceta-{}", chrono::Local::now().format("%Y%m%d"));
+
+        let actual = format!("{}", version);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn add_fix_should_not_replace_non_date_number_in_prerelease() {
+        let mut version = ChocoVersion::parse("2.1.1-alpha-0010").unwrap();
+        version.add_fix().unwrap();
+        let expected = format!("2.1.1-alpha0010-{}", chrono::Local::now().format("%Y%m%d"));
+
+        let actual = format!("{}", version);
 
         assert_eq!(actual, expected);
     }
@@ -636,7 +749,8 @@ mod tests {
         case("1.2.2.5-unstable-0050", SemVersion::parse("1.2.2-unstable.50+5").unwrap()),
         case("5.1-beta0995", SemVersion::parse("5.1.0-beta.995").unwrap()),
         case("1.0-alpha-0002-rc0005", SemVersion::parse("1.0.0-alpha-rc-2.5").unwrap()), // This ending version is due to chocolatey parsing
-        case("5.0-beta-ceta", SemVersion::parse("5.0.0-beta-ceta").unwrap())
+        case("5.0-beta-ceta", SemVersion::parse("5.0.0-beta-ceta").unwrap()),
+        case("1.5-0033", SemVersion::parse("1.5.0-unstable.33").unwrap()) // This should actually never happen
     )]
     fn from_should_create_sematic_version(test: &str, expected: SemVersion) {
         let actual = SemVersion::from(ChocoVersion::parse(test).unwrap());

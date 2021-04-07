@@ -4,5 +4,6 @@
 pub mod chocolatey;
 
 pub trait FixVersion {
+    fn is_fix_version(&self) -> bool;
     fn add_fix(&mut self) -> Result<(), std::num::ParseIntError>;
 }
