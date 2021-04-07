@@ -127,3 +127,133 @@ fn should_not_download_up_to_date_file() -> Result<(), Box<dyn std::error::Error
 
     Ok(())
 }
+
+#[test]
+fn should_keep_downloaded_files() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("aer-web")?;
+    let log_path = LOG_DIR.join("aer-web-tests-no-download.log");
+    let file_name = "keep-file.exe";
+    let work_dir = std::env::temp_dir();
+    let full_path = work_dir.join(file_name);
+    if full_path.exists() {
+        std::fs::remove_file(&full_path)?;
+    }
+
+    cmd.args(&[
+        "download",
+        "https://github.com/mwallner/rocolatey/releases/download/v0.5.3/rocolatey-server.exe",
+        "--keep-files",
+        "--log",
+        log_path.to_str().unwrap(),
+        "--work-dir",
+        work_dir.to_str().unwrap(),
+        "--file-name",
+        &file_name,
+    ])
+    .env("NO_COLOR", "true");
+
+    cmd.assert()
+        .success()
+        .stdout(predicate::str::contains(format!(
+            "to '{}'",
+            full_path.display()
+        )));
+
+    assert_eq!(
+        true,
+        predicate::path::exists()
+            .and(predicate::path::is_file())
+            .eval(&full_path)
+    );
+
+    let _ = std::fs::remove_file(&full_path);
+
+    Ok(())
+}
+
+#[test]
+fn should_redownload_file_on_checksum_mismatch() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("aer-web")?;
+    let log_path = LOG_DIR.join("aer-web-tests-no-download.log");
+    let file_name = "redownload-test.nupkg";
+    let work_dir = std::env::temp_dir();
+    {
+        use std::fs::File;
+        use std::io::Write;
+        let full_path = work_dir.join(file_name);
+        let mut f = File::create(&full_path)?;
+        f.write(b"Test File")?;
+    }
+
+    cmd.args(&[
+        "download",
+        "https://github.com/cake-contrib/Cake.Recipe/releases/download/2.2.1/Cake.Recipe.2.2.1.nupkg",
+        "--log",
+        log_path.to_str().unwrap(),
+        "--work-dir",
+        work_dir.to_str().unwrap(),
+        "--file-name",
+        &file_name,
+        "--checksum",
+        "25f3869e37d0b8275adc7f076144705abf30fab676d3d835dbe06cc21a6192e4"
+    ])
+    .env("NO_COLOR", "true");
+
+    cmd.assert()
+        .success()
+        .stdout(
+            predicate::str::contains("Downloading").and(predicate::str::contains(
+                "Original Checksum matches the checksum of the downloaded file!",
+            )),
+        )
+        .stderr(predicate::str::contains(
+            "File exists, but do not match the specified checksum.",
+        ));
+
+    Ok(())
+}
+
+#[test]
+fn should_no_download_file_when_checksum_matches() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("aer-web")?;
+    let log_path = LOG_DIR.join("aer-web-tests-no-download.log");
+    let file_name = "checksum-match.nupkg";
+    let work_dir = std::env::temp_dir();
+    let checksum = {
+        use std::fs::File;
+        use std::io::Write;
+
+        use sha2::{Digest, Sha256};
+
+        let full_path = work_dir.join(file_name);
+        {
+            let mut f = File::create(&full_path)?;
+            f.write(b"Test File")?;
+        }
+        let mut f = File::open(&full_path)?;
+
+        let mut hasher = Sha256::new();
+        std::io::copy(&mut f, &mut hasher)?;
+        format!("{:x}", hasher.finalize())
+    };
+
+    cmd.args(&[
+        "download",
+        "https://not-really.important",
+        "--log",
+        log_path.to_str().unwrap(),
+        "--work-dir",
+        work_dir.to_str().unwrap(),
+        "--file-name",
+        &file_name,
+        "--checksum",
+        &checksum,
+    ])
+    .env("NO_COLOR", "true");
+
+    cmd.assert().success().stdout(predicate::str::contains(
+        "File exists, and matches the specified checksum. Nothing to download!",
+    ));
+
+    Ok(())
+}
