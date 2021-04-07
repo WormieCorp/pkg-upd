@@ -94,7 +94,7 @@ fn should_download_file_and_output_message() -> Result<(), Box<dyn std::error::E
             .and(predicate::str::contains(
                 "Checksum : bed13834d3203a1511128d19a9595c53364a0ab9f4d7926e6343c41b48b0f6e5",
             ))
-            .and(predicate::str::contains("Checksum Type : SHA256"))
+            .and(predicate::str::contains("Checksum Type : sha256"))
             .and(predicate::str::contains(
                 "The resulting file is 15.6 MB long!",
             )),
