@@ -30,17 +30,24 @@ struct Arguments {
     log: LogData,
 
     /// Disable the usage of colors when outputting text to the console.
-    #[structopt(long, global = true, env = "NO_COLOR")]
+    #[structopt(long, global = true)]
     no_color: bool,
 }
 
 fn main() {
     #[cfg(feature = "human")]
     setup_panic!();
-    let args = Arguments::from_args();
-    if args.no_color || (cfg!(windows) && !Paint::enable_windows_ascii()) {
-        Paint::disable();
-    }
+    let args = {
+        let mut args = Arguments::from_args();
+        if std::env::var("NO_COLOR").unwrap_or_default().to_lowercase() == "true" {
+            args.no_color = true;
+        }
+
+        if args.no_color || (cfg!(windows) && !Paint::enable_windows_ascii()) {
+            Paint::disable();
+        }
+        args
+    };
 
     logging::setup_logging(&args.log).expect("Unable to configure logging of the application!");
 
