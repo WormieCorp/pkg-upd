@@ -41,7 +41,7 @@ use crate::prelude::Description;
 ///
 /// println!("{:#?}", data);
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Deserialize, Serialize))]
 #[non_exhaustive]
 pub struct ChocolateyMetadata {

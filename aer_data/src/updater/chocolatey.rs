@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Deserialize, Serialize))]
 pub enum ChocolateyUpdaterType {
     None,
@@ -23,14 +23,14 @@ impl Default for ChocolateyUpdaterType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Deserialize, Serialize), serde(untagged))]
 pub enum ChocolateyParseUrl {
     UrlWithRegex { url: Url, regex: String },
     Url(Url),
 }
 
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Deserialize, Serialize))]
 #[non_exhaustive]
 pub struct ChocolateyUpdaterData {

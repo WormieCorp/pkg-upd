@@ -65,7 +65,8 @@ fn run_update(package_file: &Path) -> Result<(), Box<dyn std::error::Error>> {
 
     let request = WebRequest::create();
 
-    if let Some(choco) = data.updater().chocolatey() {
+    if data.updater().has_chocolatey() {
+        let choco = data.updater().chocolatey();
         let (_, urls) = match &choco.parse_url {
             Some(chocolatey::ChocolateyParseUrl::Url(url)) => {
                 request.get_html_response(url.as_str())?.read(None)?

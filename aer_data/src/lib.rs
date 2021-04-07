@@ -65,14 +65,18 @@ impl PackageData {
         &self.metadata
     }
 
+    /// Returns the metadata available for this package as a mutable reference.
     pub fn metadata_mut(&mut self) -> &mut metadata::PackageMetadata {
         &mut self.metadata
     }
 
+    /// Returns the updater data available for this package.
     pub fn updater(&self) -> &updater::PackageUpdateData {
         &self.updater
     }
 
+    /// Returns the updater data available for this package as a mutable
+    /// reference.
     pub fn updater_mut(&mut self) -> &mut updater::PackageUpdateData {
         &mut self.updater
     }

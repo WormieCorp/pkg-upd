@@ -4,6 +4,7 @@
 #[cfg(feature = "chocolatey")]
 pub mod chocolatey;
 
+use std::borrow::Cow;
 use std::fmt::Display;
 use std::path::PathBuf;
 
@@ -12,7 +13,7 @@ use aer_license::LicenseType;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Deserialize, Serialize), serde(untagged))]
 pub enum Description {
     None,
@@ -112,13 +113,22 @@ impl PackageMetadata {
         &self.id
     }
 
+    /// Returns wether metadata regarding chocolatey is already set or not.
     #[cfg(feature = "chocolatey")]
     #[cfg_attr(docsrs, doc(cfg(feature = "chocolatey")))]
-    pub fn chocolatey(&self) -> Option<&chocolatey::ChocolateyMetadata> {
+    pub fn has_chocolatey(&self) -> bool {
+        self.chocolatey.is_some()
+    }
+
+    /// Returns the set chocolatey metadata, or a new instance if no data is
+    /// set.
+    #[cfg(feature = "chocolatey")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "chocolatey")))]
+    pub fn chocolatey(&self) -> Cow<chocolatey::ChocolateyMetadata> {
         if let Some(ref choco) = self.chocolatey {
-            Some(&choco)
+            Cow::Borrowed(choco)
         } else {
-            None
+            Cow::Owned(chocolatey::ChocolateyMetadata::new())
         }
     }
 
@@ -132,10 +142,13 @@ impl PackageMetadata {
         &self.project_url
     }
 
+    /// Returns the license of the current software.
     pub fn license(&self) -> &LicenseType {
         &self.license
     }
 
+    /// Allows setting a new instance of chocolatey metadata and associate it
+    /// with the current metadata instance.
     #[cfg(feature = "chocolatey")]
     #[cfg_attr(docsrs, doc(cfg(feature = "chocolatey")))]
     pub fn set_chocolatey(&mut self, choco: chocolatey::ChocolateyMetadata) {
@@ -230,5 +243,29 @@ mod tests {
         pkg.project_url = expected.clone();
 
         assert_eq!(pkg.project_url(), &expected);
+    }
+
+    #[cfg(feature = "chocolatey")]
+    #[test]
+    fn chocolatey_should_return_set_data() {
+        let expected = chocolatey::ChocolateyMetadata::with_authors(&["AdmiringWorm", "kim"]);
+
+        let mut data = PackageMetadata::new("some-id");
+        data.set_chocolatey(expected.clone());
+
+        assert!(data.has_chocolatey());
+        assert_eq!(data.chocolatey(), Cow::Owned(expected));
+    }
+
+    #[cfg(feature = "chocolatey")]
+    #[test]
+    fn chocolatey_should_return_default_data() {
+        let data = PackageMetadata::new("some-other-id");
+
+        assert!(!data.has_chocolatey());
+        assert_eq!(
+            data.chocolatey(),
+            Cow::Owned(chocolatey::ChocolateyMetadata::new())
+        );
     }
 }
