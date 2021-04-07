@@ -90,3 +90,34 @@ fn testing_multiple_versions() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[test]
+fn testing_with_trace_logging() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = Command::cargo_bin("aer-ver")?;
+    let log_path = LOG_DIR.join("aer-ver-trace.log");
+
+    cmd.args(&[
+        "4.2.1-alpha54.2",
+        "--log-level",
+        "trace",
+        "--log",
+        log_path.to_str().unwrap(),
+        "--no-color",
+    ]);
+
+    cmd.assert().success().stdout(predicate::eq(
+        "[DEBUG]: Finished configuring logging
+[INFO]: Checking 1 version...
+
+[INFO]:        Raw Version : 4.2.1-alpha54.2
+
+[INFO]:         Chocolatey : 4.2.1-alpha0054-0002
+[INFO]:  SemVer from Choco : 4.2.1-alpha-54.2
+
+[INFO]:             SemVer : 4.2.1-alpha54.2
+[INFO]:  Choco from SemVer : 4.2.1-alpha0054-0002
+",
+    ));
+
+    Ok(())
+}
