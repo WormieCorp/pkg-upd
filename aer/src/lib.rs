@@ -149,7 +149,7 @@ mod tests {
         case(ChecksumType::Sha512, "sha512")
     )]
     fn fmt_should_format_checksum_type_in_lowercase(test: ChecksumType, expected: &str) {
-        let actual = format!("{}", test);
+        let actual = test.to_string();
 
         assert_eq!(actual, expected);
     }

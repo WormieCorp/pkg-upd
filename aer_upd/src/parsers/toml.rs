@@ -46,7 +46,7 @@ impl DataReader for TomlParser {
             match toml::from_str(&config_text) {
                 Err(err) => {
                     error!("Failed to deserialize package data: {:?}", err);
-                    let fmt = format!("{}", err);
+                    let fmt = err.to_string();
                     return Err(errors::ParserError::Deserialize(fmt));
                 }
                 Ok(data) => data,

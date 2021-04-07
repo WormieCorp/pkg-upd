@@ -154,7 +154,7 @@ fn parse_cmd(request: WebRequest, args: ParseArguments) {
                         &link.title
                     }),
                     Color::Cyan.paint(if let Some(version) = &link.version {
-                        format!("{}", version)
+                        version.to_string()
                     } else {
                         "None".into()
                     }),

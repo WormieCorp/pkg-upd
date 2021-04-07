@@ -466,7 +466,7 @@ mod tests {
         let version = ChocoVersion::new(1, 2);
         let expected = "1.2";
 
-        let actual = format!("{}", version);
+        let actual = version.to_string();
 
         assert_eq!(actual, expected);
     }
@@ -477,7 +477,7 @@ mod tests {
         version.set_patch(10);
         let expected = "1.6.10";
 
-        let actual = format!("{}", version);
+        let actual = version.to_string();
 
         assert_eq!(actual, expected);
     }
@@ -489,7 +489,7 @@ mod tests {
         version.set_build(99);
         let expected = "0.8.3.99";
 
-        let actual = format!("{}", version);
+        let actual = version.to_string();
 
         assert_eq!(actual, expected);
     }
@@ -500,7 +500,7 @@ mod tests {
         version.set_build(5);
         let expected = "1.1.0.5";
 
-        let actual = format!("{}", version);
+        let actual = version.to_string();
 
         assert_eq!(actual, expected);
     }
@@ -510,7 +510,7 @@ mod tests {
         let version = ChocoVersion::with_build(5, 1, 1, 3);
         let expected = "5.1.1.3";
 
-        let actual = format!("{}", version);
+        let actual = version.to_string();
 
         assert_eq!(actual, expected);
     }
@@ -521,7 +521,7 @@ mod tests {
         version.add_fix().unwrap();
         let expected = format!("2.1.0.{}", chrono::Local::now().format("%Y%m%d"));
 
-        let actual = format!("{}", version);
+        let actual = version.to_string();
 
         assert_eq!(actual, expected);
     }
@@ -533,7 +533,7 @@ mod tests {
         version.add_fix().unwrap();
         let expected = "0.2.0.5";
 
-        let actual = format!("{}", version);
+        let actual = version.to_string();
 
         assert_eq!(actual, expected);
     }
@@ -545,7 +545,7 @@ mod tests {
         version.add_fix().unwrap();
         let expected = format!("3.3.0.{}", chrono::Local::now().format("%Y%m%d"));
 
-        let actual = format!("{}", version);
+        let actual = version.to_string();
 
         assert_eq!(actual, expected);
     }
@@ -568,7 +568,7 @@ mod tests {
     )]
     fn parse_should_create_correct_versions(v: &str, expected: &str) {
         let version = ChocoVersion::parse(v).unwrap();
-        let version = format!("{}", version);
+        let version = version.to_string();
 
         assert_eq!(version, expected);
     }

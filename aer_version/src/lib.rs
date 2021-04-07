@@ -144,7 +144,7 @@ mod tests {
             Versions::Choco(chocolatey::ChocoVersion::parse("2.1.0-unstable-0050").unwrap());
         let expected = "2.1.0-unstable0050";
 
-        let actual = format!("{}", version);
+        let actual = version.to_string();
 
         assert_eq!(actual, expected);
     }
@@ -154,7 +154,7 @@ mod tests {
         let version = Versions::SemVer(SemVersion::parse("2.5.2+build.50").unwrap());
         let expected = "2.5.2+build.50";
 
-        let actual = format!("{}", version);
+        let actual = version.to_string();
 
         assert_eq!(actual, expected);
     }
