@@ -4,6 +4,7 @@
 #![cfg(feature = "chocolatey")]
 #![cfg_attr(docsrs, doc(cfg(feature = "chocolatey")))]
 
+use std::cmp::Ordering;
 use std::fmt::Display;
 
 use semver::Identifier;
@@ -14,7 +15,7 @@ use serde::ser::{Serialize, Serializer};
 
 use crate::{FixVersion, SemVersion, SemanticVersionError};
 
-#[derive(Default, Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Default, Debug, Clone, Eq)]
 pub struct ChocoVersion {
     major: u8,
     minor: u8,
@@ -144,6 +145,44 @@ impl ChocoVersion {
     pub fn with_prerelease(mut self, pre: Vec<Identifier>) -> Self {
         self.set_prerelease(pre);
         self
+    }
+}
+
+impl Ord for ChocoVersion {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let major_cmp = self.major.cmp(&other.major);
+        if major_cmp != Ordering::Equal {
+            return major_cmp;
+        }
+        let minor_cmp = self.minor.cmp(&other.minor);
+        if minor_cmp != Ordering::Equal {
+            return minor_cmp;
+        }
+        let patch_cmp = self.patch.unwrap_or(0).cmp(&other.patch.unwrap_or(0));
+        if patch_cmp != Ordering::Equal {
+            return patch_cmp;
+        }
+        let build_cmp = self.build.unwrap_or(0).cmp(&other.build.unwrap_or(0));
+        if build_cmp != Ordering::Equal {
+            return build_cmp;
+        }
+
+        self.pre_release.cmp(&other.pre_release)
+    }
+}
+
+impl PartialOrd for ChocoVersion {
+    fn partial_cmp(&self, other: &Self) -> std::option::Option<std::cmp::Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+impl PartialEq for ChocoVersion {
+    fn eq(&self, other: &Self) -> bool {
+        self.major == other.major
+            && self.minor == other.minor
+            && self.patch.unwrap_or(0) == other.patch.unwrap_or(0)
+            && self.build.unwrap_or(0) == other.build.unwrap_or(0)
     }
 }
 
@@ -603,5 +642,33 @@ mod tests {
         let actual = SemVersion::from(ChocoVersion::parse(test).unwrap());
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn should_sort_versions() {
+        let mut versions = vec![
+            ChocoVersion::parse("1.2.0-55").unwrap(),
+            ChocoVersion::parse("1.2").unwrap(),
+            ChocoVersion::parse("0.4.2.1").unwrap(),
+            ChocoVersion::parse("6.2.0").unwrap(),
+            ChocoVersion::parse("1.0.0-rc").unwrap(),
+            ChocoVersion::parse("1.0.0-alpha").unwrap(),
+            ChocoVersion::parse("5.0-beta.56").unwrap(),
+            ChocoVersion::parse("5.0-beta.55").unwrap(),
+        ];
+        let expected = vec![
+            ChocoVersion::parse("0.4.2.1").unwrap(),
+            ChocoVersion::parse("1.0.0-alpha").unwrap(),
+            ChocoVersion::parse("1.0.0-rc").unwrap(),
+            ChocoVersion::parse("1.2.0-55").unwrap(),
+            ChocoVersion::parse("1.2").unwrap(),
+            ChocoVersion::parse("5.0-beta.55").unwrap(),
+            ChocoVersion::parse("5.0-beta.56").unwrap(),
+            ChocoVersion::parse("6.2.0").unwrap(),
+        ];
+
+        versions.sort();
+
+        assert_eq!(versions, expected);
     }
 }
