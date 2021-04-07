@@ -54,7 +54,7 @@ impl ChocoVersion {
             )));
         } else if !val.chars().next().unwrap_or('.').is_digit(10) {
             return Err(Box::new(SemanticVersionError::ParseError(
-                "The version string to not start with a number".into(),
+                "The version string do not start with a number".into(),
             )));
         }
 

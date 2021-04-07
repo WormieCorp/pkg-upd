@@ -90,7 +90,56 @@ impl Display for Versions {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
+
+    #[test]
+    #[cfg(feature = "chocolatey")]
+    fn parse_should_use_chocolatey_version_on_4_part_versions() {
+        let expected = Versions::Choco(chocolatey::ChocoVersion::with_build(5, 1, 6, 4));
+        let version = Versions::parse("5.1.6.4").unwrap();
+
+        assert_eq!(version, expected);
+    }
+
+    #[test]
+    fn parse_should_use_semver_version_on_3_part_versions() {
+        let expected = Versions::SemVer(SemVersion::new(5, 1, 0));
+        let version = Versions::parse("5.1.0").unwrap();
+
+        assert_eq!(version, expected);
+    }
+
+    #[test]
+    #[cfg_attr(
+        feature = "chocolatey",
+        should_panic(expected = "The version string do not start with a number")
+    )]
+    #[cfg_attr(
+        not(feature = "chocolatey"),
+        should_panic(expected = "encountered unexpected token: AlphaNumeric")
+    )]
+    fn parse_should_return_error_on_invalid_version() {
+        Versions::parse("invalid").unwrap();
+    }
+
+    #[test]
+    #[cfg_attr(
+        feature = "chocolatey",
+        should_panic(
+            expected = "There were additional numeric characters after the first 4 parts of the \
+                        version"
+        )
+    )]
+    #[cfg_attr(
+        not(feature = "chocolatey"),
+        should_panic(expected = "expected end of input, but got:")
+    )]
+    fn parse_should_return_error_on_5_part_version() {
+        // This may be valid at a later date, if/when python support is added
+        Versions::parse("2.0.2.5.1").unwrap();
+    }
 
     #[test]
     #[cfg(feature = "chocolatey")]
@@ -149,13 +198,13 @@ mod tests {
         assert_eq!(actual, expected);
     }
 
-    #[test]
-    fn display_semver() {
-        let version = Versions::SemVer(SemVersion::parse("2.5.2+build.50").unwrap());
-        let expected = "2.5.2+build.50";
+    #[rstest]
+    #[case("4.2.1-alpha.5+6", "4.2.1-alpha.5+6")]
+    #[cfg_attr(feature = "chocolatey", case("3.2", "3.2"))]
+    #[cfg_attr(feature = "chocolatey", case("5.2.1.6-beta-0005", "5.2.1.6-beta0005"))]
+    fn display_version(#[case] test: &str, #[case] expected: &str) {
+        let version = Versions::parse(test).unwrap();
 
-        let actual = version.to_string();
-
-        assert_eq!(actual, expected);
+        assert_eq!(version.to_string(), expected);
     }
 }
