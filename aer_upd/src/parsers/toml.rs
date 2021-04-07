@@ -81,63 +81,67 @@ mod tests {
         }
     }
 
-    #[rstest(
-        file,
-        case("test-package.toml"),
-        case("test-package.aer.yml"),
-        case("test-package.xml")
-    )]
-    fn can_handle_file_returns_false_for_non_aer_toml_files(file: &str) {
+    #[rstest]
+    #[should_panic(expected = "The file \\'test-package.toml\\' is not a supported type")]
+    #[case("test-package.toml")]
+    #[should_panic(expected = "The file \\'test-package.aer.yml\\' is not a supported type")]
+    #[case("test-package.aer.yml")]
+    #[should_panic(expected = "The file \\'test-package.xml\\' is not a supported type")]
+    #[case("test-package.xml")]
+    fn read_file_should_error_for_non_aer_toml_files(#[case] file: &str) {
         let path = PathBuf::from_str(file).unwrap();
         let parser = TomlParser;
 
-        let result = parser.can_handle_file(&path);
-
-        assert!(!result);
-    }
-
-    #[rstest(
-        kind,
-        case(ErrorKind::NotFound),
-        case(ErrorKind::PermissionDenied),
-        case(ErrorKind::UnexpectedEof)
-    )]
-    fn read_data_should_error_on_io_access_failed(kind: ErrorKind) {
-        let parser = TomlParser;
-        let mut reader = ErrorReader { kind };
-
-        let result = parser.read_data(&mut reader);
-
-        assert!(result.is_err());
+        let _ = parser.read_file(&path).unwrap();
     }
 
     #[test]
+    #[should_panic(expected = "The file \\'test-file.aer.toml\\' could not be found!")]
+    fn read_file_should_error_for_non_existing_file() {
+        let path = PathBuf::from("test-file.aer.toml");
+        let parser = TomlParser;
+
+        let _ = parser.read_file(&path).unwrap();
+    }
+
+    #[rstest]
+    #[should_panic(expected = "Loading(Kind(NotFound))")]
+    #[case(ErrorKind::NotFound)]
+    #[should_panic(expected = "Loading(Kind(PermissionDenied")]
+    #[case(ErrorKind::PermissionDenied)]
+    #[should_panic(expected = "Loading(Kind(UnexpectedEof))")]
+    #[case(ErrorKind::UnexpectedEof)]
+    fn read_file_should_error_on_io_access_failed(#[case] kind: ErrorKind) {
+        let parser = TomlParser;
+        let mut reader = ErrorReader { kind };
+
+        let _ = parser.read_data(&mut reader).unwrap();
+    }
+
+    #[test]
+    #[should_panic(expected = "expected an equals, found an identifier at line 1 column 6")]
     fn read_data_should_error_on_wrong_data_format() {
         const VAL: &[u8] = b"This deserialization should fail!";
         let mut reader = BufReader::new(VAL);
         let parser = TomlParser;
 
-        let result = parser.read_data(&mut reader);
-
-        assert!(result.is_err());
+        let _ = parser.read_data(&mut reader).unwrap();
     }
 
     #[test]
+    #[should_panic(expected = "missing field `summary` for key `metadata` at line 1 column 1")]
     fn read_data_should_error_on_missing_required_value() {
         const VAL: &[u8] = br#"[metadata]
-        id = "test-package"#;
+        id = "test-package""#;
         let mut reader = BufReader::new(VAL);
         let parser = TomlParser;
 
-        let result = parser.read_data(&mut reader);
-
-        assert!(result.is_err());
+        let _ = parser.read_data(&mut reader).unwrap();
     }
 
     #[test]
     fn read_data_should_succeed_on_required_values_defined() {
-        const VAL: &[u8] = include_bytes!("../../test-data/basic-metadata.toml");
-        let mut reader = BufReader::new(VAL);
+        let path = PathBuf::from("test-data/basic-metadata.aer.toml");
         let parser = TomlParser;
         let expected = {
             let mut pkg = PackageData::new("test-package");
@@ -149,45 +153,42 @@ mod tests {
             pkg
         };
 
-        let result = parser.read_data(&mut reader).unwrap();
+        let result = parser.read_file(&path).unwrap();
 
         assert_eq!(result, expected);
     }
 
     #[test]
     fn read_data_should_accept_license_expression() {
-        const VAL: &[u8] = include_bytes!("../../test-data/license-expression.toml");
-        let mut reader = BufReader::new(VAL);
+        let path = PathBuf::from("test-data/license-expression.aer.toml");
         let parser = TomlParser;
         let mut expected = PackageData::new("test-package");
         expected
             .metadata_mut()
             .set_license(LicenseType::Expression("MIT".to_owned()));
 
-        let actual = parser.read_data(&mut reader).unwrap();
+        let actual = parser.read_file(&path).unwrap();
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn read_data_should_accept_license_url() {
-        const VAL: &[u8] = include_bytes!("../../test-data/license-url.toml");
-        let mut reader = BufReader::new(VAL);
+        let path = PathBuf::from("test-data/license-url.aer.toml");
         let parser = TomlParser;
         let mut expected = PackageData::new("test-package");
         expected.metadata_mut().set_license(LicenseType::Location(
             Url::parse("https://github.com/WormieCorp/aer/LICENSE.txt").unwrap(),
         ));
 
-        let actual = parser.read_data(&mut reader).unwrap();
+        let actual = parser.read_file(&path).unwrap();
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn read_data_should_accept_license_expression_and_url() {
-        const VAL: &[u8] = include_bytes!("../../test-data/license-short.toml");
-        let mut reader = BufReader::new(VAL);
+        let path = PathBuf::from("test-data/license-short.aer.toml");
         let parser = TomlParser;
         let mut expected = PackageData::new("test-package");
         expected
@@ -197,15 +198,14 @@ mod tests {
                 expression: "MIT".into(),
             });
 
-        let actual = parser.read_data(&mut reader).unwrap();
+        let actual = parser.read_file(&path).unwrap();
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn read_data_should_accept_license_in_seperate_section() {
-        const VAL: &[u8] = include_bytes!("../../test-data/license-long.toml");
-        let mut reader = BufReader::new(VAL);
+        let path = PathBuf::from("test-data/license-long.aer.toml");
         let parser = TomlParser;
         let mut expected = PackageData::new("test-package");
         expected
@@ -215,15 +215,14 @@ mod tests {
                 expression: "MIT".into(),
             });
 
-        let actual = parser.read_data(&mut reader).unwrap();
+        let actual = parser.read_file(&path).unwrap();
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn read_data_should_accept_chocolatey_arguments() {
-        const VAL: &[u8] = include_bytes!("../../test-data/metadata-choco.toml");
-        let mut reader = BufReader::new(VAL);
+        let path = PathBuf::from("test-data/metadata-choco.aer.toml");
         let parser = TomlParser;
         let mut expected = {
             let mut pkg = PackageData::new("test-package");
@@ -239,15 +238,14 @@ mod tests {
             choco
         });
 
-        let actual = parser.read_data(&mut reader).unwrap();
+        let actual = parser.read_file(&path).unwrap();
 
         assert_eq!(actual, expected);
     }
 
     #[test]
     fn read_data_should_deserialize_all_data() {
-        const VAL: &[u8] = include_bytes!("../../test-data/deserialize-full.aer.toml");
-        let mut reader = BufReader::new(VAL);
+        let path = PathBuf::from("test-data/deserialize-full.aer.toml");
         let parser = TomlParser;
         let expected = {
             let mut pkg = PackageData::new("astyle");
@@ -303,7 +301,7 @@ mod tests {
             pkg
         };
 
-        let actual = parser.read_data(&mut reader).unwrap();
+        let actual = parser.read_file(&path).unwrap();
 
         assert_eq!(actual, expected);
     }
