@@ -296,8 +296,10 @@ fn get_val<T: num::PrimInt>(value: T, max_value: T) -> T {
 }
 
 fn extract_prerelease(val: &str) -> Vec<Identifier> {
+    const NORMAL_PRE: &str = "unstable";
     let mut result = vec![];
     let mut current = String::new();
+    let mut next = String::new();
 
     for ch in val.chars().take_while(|ch| *ch != '+') {
         if ch == '-' || ch == '.' {
@@ -305,15 +307,46 @@ fn extract_prerelease(val: &str) -> Vec<Identifier> {
                 current.clear();
                 result.push(res);
             }
+            if let Some(res) = get_identifier(&next) {
+                result.push(res);
+                next.clear();
+            }
+
+            continue;
+        } else if ch.is_digit(10) {
+            if result.is_empty() && current.is_empty() {
+                result.push(Identifier::AlphaNumeric(NORMAL_PRE.into()));
+            } else if current.chars().any(|ch| !ch.is_digit(10)) {
+                if let Some(res) = get_identifier(&current) {
+                    current.clear();
+                    result.push(res);
+                }
+            }
         } else if ch.is_digit(10) && result.is_empty() && current.is_empty() {
-            result.push(Identifier::AlphaNumeric("unstable".into()));
-            current.push(ch);
-        } else {
-            current.push(ch)
+            result.push(Identifier::AlphaNumeric(NORMAL_PRE.into()));
+        } else if !ch.is_digit(10)
+            && current.is_empty()
+            && result.len() > 1
+            && result.first() == Some(&Identifier::AlphaNumeric(NORMAL_PRE.into()))
+        {
+            result.remove(0);
+            next = result.pop().unwrap().to_string();
+        } else if !ch.is_digit(10)
+            && !current.is_empty()
+            && result.first() == Some(&Identifier::AlphaNumeric(NORMAL_PRE.into()))
+        {
+            result.remove(0);
+            next = current.clone();
+            current.clear();
         }
+        current.push(ch);
     }
 
     if let Some(res) = get_identifier(&current) {
+        result.push(res);
+    }
+
+    if let Some(res) = get_identifier(&next) {
         result.push(res);
     }
 
@@ -360,10 +393,22 @@ impl Display for ChocoVersion {
             write!(f, ".{}", build)?;
         }
 
+        let mut prev_alpha = false;
+
         for pre in &self.pre_release {
             match pre {
-                Identifier::Numeric(num) => write!(f, "-{:04}", num)?,
-                num => write!(f, "-{}", num)?,
+                Identifier::Numeric(num) => {
+                    if prev_alpha {
+                        write!(f, "{:04}", num)?;
+                        prev_alpha = false;
+                    } else {
+                        write!(f, "-{:04}", num)?;
+                    }
+                }
+                num => {
+                    write!(f, "-{}", num)?;
+                    prev_alpha = true;
+                }
             }
         }
 
@@ -474,11 +519,13 @@ mod tests {
         case("0.2.65", "0.2.65"),
         case("3.5.0.2342", "3.5.0.2342"),
         case("3.3-alpha001", "3.3-alpha0001"),
-        case("3.2-alpha.10", "3.2-alpha-0010"),
-        case("3.3.5-beta-11", "3.3.5-beta-0011"),
+        case("3.2-alpha.10", "3.2-alpha0010"),
+        case("3.3.5-beta-11", "3.3.5-beta0011"),
         case("3.1.1+55", "3.1.1"),
-        case("4.0.0.2-beta.5", "4.0.0.2-beta-0005"),
-        case("0.1.0-55", "0.1.0-unstable-0055")
+        case("4.0.0.2-beta.5", "4.0.0.2-beta0005"),
+        case("0.1.0-55", "0.1.0-unstable0055"),
+        case("4.2.1-alpha54.2", "4.2.1-alpha0054-0002"),
+        case("6.1.0-55-alpha", "6.1.0-alpha0055")
     )]
     fn parse_should_create_correct_versions(v: &str, expected: &str) {
         let version = ChocoVersion::parse(v).unwrap();
@@ -524,16 +571,19 @@ mod tests {
         ),
         case(
             "5.1.1-alpha.5",
-            ChocoVersion::with_patch(5, 1, 1).with_prerelease(vec![Identifier::AlphaNumeric("alpha".into()),Identifier::Numeric(5)])
+            ChocoVersion::with_patch(5, 1, 1).with_prerelease(vec![Identifier::AlphaNumeric("alpha".into()), Identifier::Numeric(5)])
         ),
         case(
             "1.2.3-beta50",
-            ChocoVersion::with_patch(1, 2, 3).with_prerelease(vec![Identifier::AlphaNumeric("beta0050".into())])
+            ChocoVersion::with_patch(1, 2, 3).with_prerelease(vec![Identifier::AlphaNumeric("beta".into()), Identifier::Numeric(50)])
         ),
         case(
             "3.0.0-666",
             ChocoVersion::with_patch(3, 0, 0).with_prerelease(vec![Identifier::AlphaNumeric("unstable".into()), Identifier::Numeric(666)])
-        )
+        ),
+        case("2.0.0-55beta", ChocoVersion::with_patch(2, 0, 0).with_prerelease(vec![Identifier::AlphaNumeric("beta".into()), Identifier::Numeric(55)])),
+        case("4.2.1-alpha54.2", ChocoVersion::with_patch(4, 2, 1).with_prerelease(vec![Identifier::AlphaNumeric("alpha".into()), Identifier::Numeric(54), Identifier::Numeric(2)])),
+        case("6.1.0-55-alpha", ChocoVersion::with_patch(6, 1, 0).with_prerelease(vec![Identifier::AlphaNumeric("alpha".into()).into(), Identifier::Numeric(55)]))
     )]
     fn from_should_create_choco_version_with_prerelease(test: &str, expected: ChocoVersion) {
         let actual = ChocoVersion::from(SemVersion::parse(test).unwrap());

@@ -80,7 +80,7 @@ fn testing_multiple_versions() -> Result<(), Box<dyn std::error::Error>> {
 
        Raw Version : 5.2-alpha.5
 
-        Chocolatey : 5.2-alpha-0005
+        Chocolatey : 5.2-alpha0005
  SemVer from Choco : 5.2.0-alpha.5
 
             SemVer : None

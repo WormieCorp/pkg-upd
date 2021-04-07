@@ -7,23 +7,69 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'aer'",
+            "name": "Debug unit tests in library 'aer'",
             "cargo": {
-                "args": ["build", "--bin=aer", "--package=aer"],
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=aer"
+                ],
                 "filter": {
                     "name": "aer",
-                    "kind": "bin"
+                    "kind": "lib"
                 }
             },
-            "args": ["aer_upd/test-data/deserialize-full.aer.toml"],
+            "args": [],
             "cwd": "${workspaceFolder}"
         },
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'aer'",
+            "name": "Debug executable 'aer-ver'",
             "cargo": {
-                "args": ["test", "--no-run", "--bin=aer", "--package=aer"],
+                "args": [
+                    "build",
+                    "--bin=aer-ver",
+                    "--package=aer"
+                ],
+                "filter": {
+                    "name": "aer-ver",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'aer-ver'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=aer-ver",
+                    "--package=aer"
+                ],
+                "filter": {
+                    "name": "aer-ver",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'aer'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=aer",
+                    "--package=aer"
+                ],
                 "filter": {
                     "name": "aer",
                     "kind": "bin"
@@ -35,9 +81,108 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Debug unit tests in executable 'aer'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=aer",
+                    "--package=aer"
+                ],
+                "filter": {
+                    "name": "aer",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'aer-web'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=aer-web",
+                    "--package=aer"
+                ],
+                "filter": {
+                    "name": "aer-web",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'aer-web'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=aer-web",
+                    "--package=aer"
+                ],
+                "filter": {
+                    "name": "aer-web",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'aer-ver'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=aer-ver",
+                    "--package=aer"
+                ],
+                "filter": {
+                    "name": "aer-ver",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug integration test 'aer-web'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=aer-web",
+                    "--package=aer"
+                ],
+                "filter": {
+                    "name": "aer-web",
+                    "kind": "test"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug unit tests in library 'aer_upd'",
             "cargo": {
-                "args": ["test", "--no-run", "--lib", "--package=aer_upd"],
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=aer_upd"
+                ],
                 "filter": {
                     "name": "aer_upd",
                     "kind": "lib"
@@ -51,7 +196,12 @@
             "request": "launch",
             "name": "Debug unit tests in library 'aer_data'",
             "cargo": {
-                "args": ["test", "--no-run", "--lib", "--package=aer_data"],
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=aer_data"
+                ],
                 "filter": {
                     "name": "aer_data",
                     "kind": "lib"
@@ -65,7 +215,12 @@
             "request": "launch",
             "name": "Debug unit tests in library 'aer_license'",
             "cargo": {
-                "args": ["test", "--no-run", "--lib", "--package=aer_license"],
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=aer_license"
+                ],
                 "filter": {
                     "name": "aer_license",
                     "kind": "lib"
@@ -79,7 +234,12 @@
             "request": "launch",
             "name": "Debug unit tests in library 'aer_version'",
             "cargo": {
-                "args": ["test", "--no-run", "--lib", "--package=aer_version"],
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=aer_version"
+                ],
                 "filter": {
                     "name": "aer_version",
                     "kind": "lib"
@@ -130,7 +290,12 @@
             "request": "launch",
             "name": "Debug unit tests in library 'aer_web'",
             "cargo": {
-                "args": ["test", "--no-run", "--lib", "--package=aer_web"],
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=aer_web"
+                ],
                 "filter": {
                     "name": "aer_web",
                     "kind": "lib"

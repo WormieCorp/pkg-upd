@@ -118,7 +118,7 @@ mod tests {
     #[cfg(feature = "chocolatey")]
     fn to_choco_should_create_chocolatey_version_from_semver() {
         let version = Versions::SemVer(SemVersion::parse("1.0.5-beta.55+99").unwrap());
-        let expected = chocolatey::ChocoVersion::parse("1.0.5-beta-0055").unwrap();
+        let expected = chocolatey::ChocoVersion::parse("1.0.5-beta0055").unwrap();
 
         let actual = version.to_choco();
 
@@ -130,7 +130,7 @@ mod tests {
     fn to_choco_should_returned_cloned_version_of_choco() {
         let version =
             Versions::Choco(chocolatey::ChocoVersion::parse("5.2.1.56-unstable-0050").unwrap());
-        let expected = chocolatey::ChocoVersion::parse("5.2.1.56-unstable-0050").unwrap();
+        let expected = chocolatey::ChocoVersion::parse("5.2.1.56-unstable0050").unwrap();
 
         let actual = version.to_choco();
 
@@ -142,7 +142,7 @@ mod tests {
     fn display_choco_version() {
         let version =
             Versions::Choco(chocolatey::ChocoVersion::parse("2.1.0-unstable-0050").unwrap());
-        let expected = "2.1.0-unstable-0050";
+        let expected = "2.1.0-unstable0050";
 
         let actual = format!("{}", version);
 
