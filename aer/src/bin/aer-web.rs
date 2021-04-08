@@ -279,9 +279,12 @@ fn download_file(request: WebRequest, args: DownloadArguments) -> Result<(), Web
                 Err(err) => error!("Unable to generate checksum: {}", err),
             }
 
-            let len = if cfg!(feature = "human") {
-                human_bytes(result.metadata()?.len() as f64)
-            } else {
+            let len = {
+                #[cfg(feature = "human")]
+                {
+                    human_bytes(result.metadata()?.len() as f64)
+                }
+                #[cfg(not(feature = "human"))]
                 format!("{} bytes", result.metadata()?.len())
             };
 

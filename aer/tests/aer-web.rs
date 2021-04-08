@@ -8,6 +8,16 @@ use assert_cmd::prelude::*;
 use lazy_static::lazy_static;
 use predicates::prelude::*;
 
+#[cfg(feature = "human")]
+fn get_readable_bytes<T: Into<f64>>(num: T) -> String {
+    human_bytes::human_bytes(num.into())
+}
+
+#[cfg(not(feature = "human"))]
+fn get_readable_bytes<T: std::fmt::Display>(num: T) -> String {
+    format!("{} bytes", num)
+}
+
 lazy_static! {
     static ref LOG_DIR: PathBuf = std::env::temp_dir();
 }
@@ -95,9 +105,10 @@ fn should_download_file_and_output_message() -> Result<(), Box<dyn std::error::E
                 "Checksum : bed13834d3203a1511128d19a9595c53364a0ab9f4d7926e6343c41b48b0f6e5",
             ))
             .and(predicate::str::contains("Checksum Type : sha256"))
-            .and(predicate::str::contains(
-                "The resulting file is 15.6 MB long!",
-            )),
+            .and(predicate::str::contains(format!(
+                "The resulting file is {} long!",
+                get_readable_bytes(16376743)
+            ))),
     );
 
     Ok(())
