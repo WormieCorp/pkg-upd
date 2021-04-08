@@ -82,40 +82,51 @@ mod tests {
     }
 
     #[rstest]
-    #[should_panic(expected = "The file \\'test-package.toml\\' is not a supported type")]
     #[case("test-package.toml")]
-    #[should_panic(expected = "The file \\'test-package.aer.yml\\' is not a supported type")]
     #[case("test-package.aer.yml")]
-    #[should_panic(expected = "The file \\'test-package.xml\\' is not a supported type")]
     #[case("test-package.xml")]
     fn read_file_should_error_for_non_aer_toml_files(#[case] file: &str) {
         let path = PathBuf::from_str(file).unwrap();
         let parser = TomlParser;
 
-        let _ = parser.read_file(&path).unwrap();
+        let r = parser.read_file(&path).unwrap_err();
+
+        assert_eq!(
+            r,
+            errors::ParserError::Loading(Error::new(
+                ErrorKind::InvalidData,
+                format!("The file '{}' is not a supported type.", file)
+            ))
+        );
     }
 
     #[test]
-    #[should_panic(expected = "The file \\'test-file.aer.toml\\' could not be found!")]
     fn read_file_should_error_for_non_existing_file() {
         let path = PathBuf::from("test-file.aer.toml");
         let parser = TomlParser;
 
-        let _ = parser.read_file(&path).unwrap();
+        let r = parser.read_file(&path).unwrap_err();
+
+        assert_eq!(
+            r,
+            errors::ParserError::Loading(Error::new(
+                ErrorKind::NotFound,
+                format!("The file '{}' could not be found!", path.display())
+            ))
+        );
     }
 
     #[rstest]
-    #[should_panic(expected = "Loading(Kind(NotFound))")]
     #[case(ErrorKind::NotFound)]
-    #[should_panic(expected = "Loading(Kind(PermissionDenied")]
     #[case(ErrorKind::PermissionDenied)]
-    #[should_panic(expected = "Loading(Kind(UnexpectedEof))")]
     #[case(ErrorKind::UnexpectedEof)]
     fn read_file_should_error_on_io_access_failed(#[case] kind: ErrorKind) {
         let parser = TomlParser;
         let mut reader = ErrorReader { kind };
 
-        let _ = parser.read_data(&mut reader).unwrap();
+        let r = parser.read_data(&mut reader).unwrap_err();
+
+        assert_eq!(r, errors::ParserError::Loading(Error::from(kind)));
     }
 
     #[test]
