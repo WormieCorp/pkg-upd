@@ -238,7 +238,7 @@ impl FixVersion for ChocoVersion {
             if self.pre_release.is_empty() {
                 self.set_build(num_fix);
             } else if let Some(Identifier::Numeric(num)) = self.pre_release.last_mut() {
-                if *num >= FIX_THRESHOLD as u64 {
+                if num_is_fix(*num) {
                     *num = num_fix as u64;
                 } else {
                     self.pre_release.push(Identifier::Numeric(num_fix as u64));
