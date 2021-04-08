@@ -48,6 +48,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, ubuntu-latest] # Coverage report do not work on Windows
+        features: [all, human, none]
 
     steps:
       - uses: actions/checkout@v2
@@ -62,8 +63,19 @@ jobs:
       - uses: Swatinem/rust-cache@v1
         with:
           key: ${{ matrix.os }}-${{ hashFiles('Cargo.toml') }}
-      - name: Run unit tests with coverage report
+      - name: Run unit tests with coverage report and all features
+        if: ${{ matrix.features == 'all' }}
         uses: Swatinem/fucov@v1
+      - name: Run unit tests with coverage report and no features
+        if: ${{ matrix.features == 'none' }}
+        uses: Swatinem/fucov@v1
+        with:
+          args: --workspace --no-default-features
+      - name: Run unit tests with coverage report and features ${{ matrix.features }}
+        if: ${{ matrix.features != 'all' && matrix.features != 'none' }}
+        uses: Swatinem/fucov@v1
+        with:
+          args: --workspace --no-default-features --features ${{ matrix.features }}
       - name: Upload coverage report
         uses: codecov/codecov-action@v1
         with:
