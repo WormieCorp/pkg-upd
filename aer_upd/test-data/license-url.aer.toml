@@ -1,5 +1,5 @@
 [metadata]
 id = "test-package"
-project_url = "https://example-repo.org"
+project_url = "https://example.com/MUST_BE_CHANGED"
 summary = ""
 license = "https://github.com/WormieCorp/aer/LICENSE.txt"
