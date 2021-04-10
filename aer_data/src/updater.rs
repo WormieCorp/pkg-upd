@@ -3,6 +3,7 @@
 
 pub mod chocolatey;
 
+#[cfg(feature = "chocolatey")]
 use std::borrow::Cow;
 
 #[cfg(feature = "serialize")]
@@ -52,11 +53,10 @@ impl PackageUpdateData {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "chocolatey"))]
 mod tests {
     use super::*;
 
-    #[cfg(feature = "chocolatey")]
     #[test]
     fn should_get_set_chocolatey_data() {
         let mut expected = chocolatey::ChocolateyUpdaterData::new();
@@ -69,7 +69,6 @@ mod tests {
         assert_eq!(data.chocolatey(), Cow::Owned(expected));
     }
 
-    #[cfg(feature = "chocolatey")]
     #[test]
     fn should_return_default_chocolatey() {
         let expected = chocolatey::ChocolateyUpdaterData::new();

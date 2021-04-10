@@ -36,6 +36,7 @@ impl PartialEq<str> for Description {
 #[cfg_attr(feature = "serialize", derive(Deserialize, Serialize))]
 #[non_exhaustive]
 pub struct PackageMetadata {
+    package_source_url: Option<Url>,
     /// The identifier of the package
     id: String,
 
@@ -49,6 +50,11 @@ pub struct PackageMetadata {
 
     /// The main endpoint (homepage) of the software.
     project_url: Url,
+
+    /// The location where the source of the software is hosted. Can be a
+    /// repository, or potentially a url to the location were source archives
+    /// can be downloaded (not a direct url).
+    project_source_url: Option<Url>,
 
     /// The type of the license, this can be either a supported expression (Like
     /// `MIT`, `GPL`, etc.) or an url the location of the license.
@@ -98,10 +104,12 @@ impl PackageMetadata {
     /// identifier.
     pub fn new(id: &str) -> PackageMetadata {
         PackageMetadata {
+            package_source_url: None,
             id: id.to_owned(),
             maintainers: crate::defaults::maintainer(),
             summary: String::new(),
-            project_url: Url::parse("https://example-repo.org").unwrap(),
+            project_url: crate::defaults::url(),
+            project_source_url: None,
             license: LicenseType::None,
             #[cfg(feature = "chocolatey")]
             chocolatey: None,
@@ -137,9 +145,28 @@ impl PackageMetadata {
         self.maintainers.as_slice()
     }
 
+    pub fn package_source_url(&self) -> Cow<Url> {
+        if let Some(ref url) = self.package_source_url {
+            Cow::Borrowed(url)
+        } else {
+            Cow::Owned(crate::defaults::url())
+        }
+    }
+
     /// Returns the url to the landing page of the software.
     pub fn project_url(&self) -> &Url {
         &self.project_url
+    }
+
+    /// The location where the source of the software is hosted. Can be a
+    /// repository, or potentially a url to the location were source archives
+    /// can be downloaded (not a direct url).
+    pub fn project_source_url(&self) -> Cow<Url> {
+        if let Some(ref url) = self.project_source_url {
+            Cow::Borrowed(url)
+        } else {
+            Cow::Owned(crate::defaults::url())
+        }
     }
 
     /// Returns the license of the current software.
@@ -168,9 +195,19 @@ impl PackageMetadata {
         self.maintainers = maintainers;
     }
 
+    pub fn set_package_source<U: AsRef<str>>(&mut self, url: U) -> Result<(), url::ParseError> {
+        self.package_source_url = Some(Url::parse(url.as_ref())?);
+        Ok(())
+    }
+
     pub fn set_project_url(&mut self, url: &str) {
         let url = Url::parse(url).unwrap(); // We want a failure here to abort the program
         self.project_url = url;
+    }
+
+    pub fn set_project_source_url<U: AsRef<str>>(&mut self, url: U) -> Result<(), url::ParseError> {
+        self.project_source_url = Some(Url::parse(url.as_ref())?);
+        Ok(())
     }
 
     pub fn set_license(&mut self, license: LicenseType) {
@@ -184,6 +221,12 @@ impl Default for PackageMetadata {
     }
 }
 
+impl AsRef<PackageMetadata> for PackageMetadata {
+    fn as_ref(&self) -> &PackageMetadata {
+        self
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -191,9 +234,11 @@ mod tests {
     #[test]
     fn new_should_create_default_metadata_with_expected_values() {
         let expected = PackageMetadata {
+            package_source_url: None,
             id: "test-package".to_owned(),
             maintainers: crate::defaults::maintainer(),
-            project_url: Url::parse("https://example-repo.org").unwrap(),
+            project_url: crate::defaults::url(),
+            project_source_url: None,
             license: LicenseType::None,
             summary: String::new(),
             #[cfg(feature = "chocolatey")]
