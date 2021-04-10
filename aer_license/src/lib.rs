@@ -79,6 +79,43 @@ impl LicenseType {
     }
 }
 
+impl From<Url> for LicenseType {
+    fn from(url: Url) -> Self {
+        LicenseType::Location(url)
+    }
+}
+
+impl From<&Url> for LicenseType {
+    fn from(url: &Url) -> Self {
+        LicenseType::Location(url.clone())
+    }
+}
+
+impl From<String> for LicenseType {
+    fn from(val: String) -> Self {
+        if let Ok(url) = Url::parse(&val) {
+            LicenseType::Location(url)
+        } else {
+            LicenseType::Expression(val)
+        }
+    }
+}
+
+impl From<&str> for LicenseType {
+    fn from(val: &str) -> Self {
+        val.to_owned().into()
+    }
+}
+
+impl From<(&str, &Url)> for LicenseType {
+    fn from(val: (&str, &Url)) -> Self {
+        LicenseType::ExpressionAndLocation {
+            expression: val.0.to_owned(),
+            url: val.1.to_owned(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;

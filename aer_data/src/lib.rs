@@ -83,6 +83,17 @@ impl PackageData {
     }
 }
 
+/// Implements a trait to use by updating necessary data
+/// to a package specific handler.
+pub trait DataUpdater<T> {
+    /// Updates the current data with the data in the specified from argument.
+    fn update_from<R: AsRef<T>>(&mut self, from: R);
+
+    /// Resets the current data by comparing it with the data in the specified
+    /// argument.
+    fn reset_same<R: AsRef<T>>(&mut self, from: R);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

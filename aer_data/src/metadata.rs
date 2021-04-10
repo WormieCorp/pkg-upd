@@ -115,10 +115,10 @@ pub struct PackageMetadata {
 impl PackageMetadata {
     /// Creates a new instance of the package metadata with the specified
     /// identifier.
-    pub fn new(id: &str) -> PackageMetadata {
+    pub fn new<T: AsRef<str>>(id: T) -> PackageMetadata {
         PackageMetadata {
             package_source_url: None,
-            id: id.to_owned(),
+            id: id.as_ref().to_string(),
             maintainers: crate::defaults::maintainer(),
             summary: String::new(),
             project_url: crate::defaults::url(),
@@ -174,6 +174,11 @@ impl PackageMetadata {
         &self.project_url
     }
 
+    /// Wether the project source url has been set or not.
+    pub fn has_project_source_url(&self) -> bool {
+        self.project_source_url.is_some()
+    }
+
     /// The location where the source of the software is hosted. Can be a
     /// repository, or potentially a url to the location were source archives
     /// can be downloaded (not a direct url).
@@ -223,8 +228,8 @@ impl PackageMetadata {
     /// Allows setting the url to the project (usually the home page of the
     /// software). Will return [url::ParseError] if the specified url is not
     /// a url.
-    pub fn set_project_url(&mut self, url: &str) {
-        let url = Url::parse(url).unwrap(); // We want a failure here to abort the program
+    pub fn set_project_url<U: AsRef<str>>(&mut self, url: U) {
+        let url = Url::parse(url.as_ref()).unwrap(); // We want a failure here to abort the program
         self.project_url = url;
     }
 

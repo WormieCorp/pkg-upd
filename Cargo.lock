@@ -46,6 +46,8 @@ version = "0.1.0"
 dependencies = [
  "aer_license",
  "aer_version",
+ "lazy_static",
+ "rand 0.8.3",
  "rstest",
  "serde",
  "url",

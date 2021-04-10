@@ -18,6 +18,15 @@ use url::Url;
 
 use crate::prelude::*;
 
+fn generate_identifier<T: AsRef<str>>(id: T, lowercase: bool) -> String {
+    if lowercase {
+        id.as_ref().to_lowercase()
+    } else {
+        id.as_ref().into()
+    }
+    .replace(' ', "-")
+}
+
 /// Basic structure to hold information regarding a
 /// package that are only specific to creating Chocolatey
 /// packages.
@@ -58,7 +67,7 @@ pub struct ChocolateyMetadata {
     #[cfg_attr(feature = "serialize", serde(default))]
     id: String,
 
-    #[cfg_attr(feature = "serialize", serde(default = "crate::defaults::maintainer"))]
+    #[cfg_attr(feature = "serialize", serde(default))]
     maintainers: Vec<String>,
 
     /// The short summary of the application, usually what is used as a
@@ -372,6 +381,19 @@ impl ChocolateyMetadata {
 
         data
     }
+
+    /// Creates a new instance with the specified identifier.
+    /// The identifier is expected to be a valid chocolatey id.
+    pub fn with_id<T: AsRef<str>>(id: T, lowercase: bool) -> Self {
+        let mut choco = ChocolateyMetadata {
+            lowercase_id: lowercase,
+            id: generate_identifier(id.as_ref(), lowercase),
+            ..Default::default()
+        };
+        choco.add_tag(generate_identifier(id, true));
+
+        choco
+    }
 }
 
 impl Default for ChocolateyMetadata {
@@ -388,7 +410,7 @@ impl Default for ChocolateyMetadata {
         ChocolateyMetadata {
             lowercase_id: true,
             id: Default::default(),
-            maintainers: crate::defaults::maintainer(),
+            maintainers: Vec::new(),
             summary: None,
             project_url: None,
             project_source_url: None,
@@ -410,10 +432,215 @@ impl Default for ChocolateyMetadata {
     }
 }
 
+impl DataUpdater<PackageMetadata> for ChocolateyMetadata {
+    /// This task updates the [ChocolateyMetadata] with the necessary values
+    /// specified in the [PackageMetadata] structure.
+    ///
+    /// Among the tasks that are being done is as follows:
+    ///
+    /// - Updates the [id][Self::id] if it is an empty string with the value
+    ///   specified in [PackageMetadata::id] while replacing spaces with dashes,
+    ///   and makes it lowercase if [lowercase_id][Self::lowercase_id] is set to
+    ///   `true`.
+    /// - Update the [maintainers][Self::id] if it is empty, or is equal to the
+    ///   operating system user with the values from
+    ///   [PackageMetadata::maintainers].
+    /// - Update the [summary][Self::summary] if it is empty with the values
+    ///   from [PackageMetadata::summary].
+    /// - Update the [project_url][Self::project_url] if it is empty with the
+    ///   values from [PackageMetadata::project_url].
+    /// - Update the [project_source_url][Self::project_source_url] if it is
+    ///   empty with the values from [PackageMetadata::project_source_url].
+    /// - Update the [package_source_url][Self::package_source_url] if it is
+    ///   empty with the values from [PackageMetadata::package_source_url].
+    /// - Update the [license_url][Self::license_url] if it is empty with the
+    ///   values from [PackageMetadata]::license_url. This will only be
+    ///   automatically set if the global metadata also have a url specified, or
+    ///   if the expression is a known/supported SPDIX.
+    /// - Add the recommended identifier (replacing spaces with dashes, and in
+    ///   lowercase) as the first item in the tags vector.
+    fn update_from<R: AsRef<PackageMetadata>>(&mut self, from: R) {
+        let from = from.as_ref();
+        if self.id.is_empty() && !from.id().is_empty() {
+            self.id = generate_identifier(from.id(), self.lowercase_id());
+        }
+
+        if self.maintainers.is_empty() {
+            self.maintainers = from.maintainers().iter().map(|m| m.to_string()).collect();
+        }
+
+        if self.summary.is_none() && !from.summary.is_empty() {
+            self.summary = Some(from.summary.clone());
+        }
+
+        if self.project_url.is_none() {
+            self.project_url = Some(from.project_url().clone());
+        }
+
+        if self.project_source_url.is_none() {
+            self.project_source_url = from.project_source_url.clone();
+        }
+
+        if self.package_source_url.is_none() {
+            self.package_source_url = from.package_source_url.clone();
+        }
+
+        if self.license_url.is_none() {
+            if let Some(license) = from.license().license_url() {
+                self.license_url = Some(Url::parse(license).unwrap());
+            }
+        }
+
+        let lower_id = self.id().to_lowercase();
+        if !self.id().is_empty() && !self.tags.contains(&lower_id) {
+            self.tags.insert(0, self.id().to_lowercase());
+        }
+    }
+
+    /// Reset the variables that are the same, automatically set or not needed.
+    ///
+    /// Among the tasks that are being done is as follows:
+    ///
+    /// - Removes the [id][Self::id] if it matches the expected identifier that
+    ///   would automatically be created (_depends on the
+    ///   [lowercase_id][Self::lowercase_id] variable_).
+    /// - Remove the [maintainers][Self::maintainers] if they are the same as
+    ///   the global [PackageMetadata::maintainers] variable.
+    /// - Remove the [summary][Self::summary] if it is the same as the global
+    ///   [PackageMetadata::summary] variable.
+    /// - Remove the [project_url][Self::project_url] if it is the same as the
+    ///   global [PackageMetadata::project_url] variable.
+    /// - Remove the [project_source_url][Self::project_source_url] if it is the
+    ///   same as the global [PackageMetadata::project_source_url] variable.
+    /// - Remove the [package_source_url][Self::package_source_url] if it is the
+    ///   same as the global [PackageMetadata::package_source_url] variable.
+    /// - Remove the [license_url][Self::license_url] if it is the same as the
+    ///   global [PackageMetadata::license] variable.
+    /// - Remove the tag matching the automatically generated identifier.
+    fn reset_same<R: AsRef<PackageMetadata>>(&mut self, from: R) {
+        let from = from.as_ref();
+        let id = self.id().to_lowercase();
+        if self.id() == generate_identifier(from.id(), self.lowercase_id()) {
+            self.id.clear();
+        }
+
+        if self.maintainers() == from.maintainers() {
+            self.maintainers.clear();
+        }
+
+        if let Some(ref summary) = self.summary {
+            if summary == &from.summary {
+                self.summary = None;
+            }
+        }
+
+        if let Some(ref url) = self.project_url {
+            if url == &from.project_url {
+                self.project_url = None;
+            }
+        }
+
+        if let Some(ref url) = self.project_source_url {
+            if url == from.project_source_url().as_ref() {
+                self.project_source_url = None;
+            }
+        }
+
+        if let Some(ref url) = self.package_source_url {
+            if url == from.package_source_url().as_ref() {
+                self.package_source_url = None;
+            }
+        }
+
+        if let Some(ref url) = self.license_url {
+            if let Some(license_url) = from.license().license_url() {
+                if url.as_ref() == license_url {
+                    self.license_url = None;
+                }
+            }
+        }
+
+        self.tags.retain(|t| t != &id);
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
+    use lazy_static::lazy_static;
+    use rand::distributions::Alphanumeric;
+    use rand::prelude::*;
+
     use super::*;
+
+    const IDENTIFIER_NAMES: &[&str] = &[
+        "7Zip",
+        "CCleaner",
+        "Google Chrome",
+        "Firefox",
+        "Chocolatey",
+        "Pacman",
+        "AER",
+        "AU",
+        "CCVARN",
+        "GitReleaseManager",
+    ];
+
+    const MAINTAINERS: &[&str] = &[
+        "AdmiringWorm",
+        "gep13",
+        "pauby",
+        "chtof",
+        "majkinetor",
+        "mkevenaar",
+        "ferventcoder",
+        "TheCakeIsNaOH",
+        "virtualex",
+    ];
+
+    const SPDIXES: &[&str] = &[
+        "ADSL",
+        "AGPL-1.0-only",
+        "AGPL-3.0",
+        "Apache-1.0",
+        "Apache-2.0",
+        "BSD-4-Clause",
+        "CAL-1.0",
+        "CC-BY-SA-4.0",
+        "GPL-1.0+",
+        "GPL-2.0+",
+        "GPL-3.0",
+        "GPL-3.0+",
+        "GPL-3.0-only",
+        "GPL-3.0-with-GCC-exception",
+        "MIT-0",
+        "SSH-OpenSSH",
+    ];
+
+    lazy_static! {
+        static ref URLS: Vec<Url> = vec![
+            Url::parse("https://chocolatey.org").unwrap(),
+            Url::parse("https://github.com").unwrap(),
+            Url::parse("https://github.com/WormieCorp/aer").unwrap(),
+            Url::parse("https://bitbucket.org").unwrap()
+        ];
+    }
+
+    fn get_maintainers(rng: &mut ThreadRng) -> Vec<&str> {
+        let mnum = rng.gen_range(1..MAINTAINERS.len());
+        get_maintainers_num(rng, mnum)
+    }
+
+    fn get_maintainers_num(rng: &mut ThreadRng, num: usize) -> Vec<&str> {
+        MAINTAINERS.choose_multiple(rng, num).map(|m| *m).collect()
+    }
+
+    fn get_rand_alphanum(rng: &mut ThreadRng, len: usize) -> String {
+        rng.sample_iter(Alphanumeric)
+            .take(len)
+            .map(char::from)
+            .collect()
+    }
 
     #[test]
     fn new_should_create_with_expected_values() {
@@ -429,7 +656,7 @@ mod tests {
         let expected = ChocolateyMetadata {
             lowercase_id: true,
             id: String::new(),
-            maintainers: crate::defaults::maintainer(),
+            maintainers: Vec::new(),
             summary: None,
             project_url: None,
             project_source_url: None,
@@ -519,5 +746,673 @@ mod tests {
         data.set_description_str("My awesome description");
 
         assert_eq!(data.description(), "My awesome description");
+    }
+
+    #[test]
+    fn update_from_should_set_lowercase_identifier() {
+        let mut rng = thread_rng();
+        let id = *IDENTIFIER_NAMES.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::with_id(&id, true);
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::new(id);
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_lowercase_identifier() {
+        let mut rng = thread_rng();
+        let id = *IDENTIFIER_NAMES.choose(&mut rng).unwrap();
+        let expected = ChocolateyMetadata::default();
+        let pkg = PackageMetadata::new(id);
+
+        let mut actual = ChocolateyMetadata::with_id(id, true);
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_set_expected_identifier_and_tag() {
+        let mut rng = thread_rng();
+        let id = *IDENTIFIER_NAMES.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::with_id(&id, false);
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::new(id);
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.lowercase_id = false;
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_identifier_and_tag() {
+        let mut rng = thread_rng();
+        let id = *IDENTIFIER_NAMES.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.lowercase_id = false;
+        let pkg = PackageMetadata::new(id);
+
+        let mut actual = ChocolateyMetadata::with_id(id, false);
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_not_remove_different_identifier() {
+        let mut rng = thread_rng();
+        let id = *IDENTIFIER_NAMES.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::with_id(id, false);
+        let pkg = PackageMetadata::new("Test Id");
+
+        let mut actual = expected.clone();
+        actual.reset_same(pkg);
+        expected.tags.clear();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_replace_existing_identifier() {
+        let mut rng = thread_rng();
+        let id = *IDENTIFIER_NAMES.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::with_id(&id, false);
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::new("Test value");
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::with_id(id, false);
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_set_expected_maintainers() {
+        let mut rng = thread_rng();
+        let maintainers = get_maintainers(&mut rng);
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        expected.maintainers = maintainers.iter().map(|m| m.to_string()).collect();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_maintainers(&maintainers);
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_replace_existing_maintainers() {
+        let mut rng = thread_rng();
+        let maintainers = get_maintainers(&mut rng);
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        expected.maintainers = maintainers.iter().map(|m| m.to_string()).collect();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_maintainers(&["Test User 1", "Test User 2"]);
+
+        let mut actual = expected.clone();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_maintainers() {
+        let mut rng = thread_rng();
+        let maintainers = get_maintainers(&mut rng);
+        let expected = ChocolateyMetadata::default();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_maintainers(&maintainers);
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.maintainers = pkg.maintainers.clone();
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_not_remove_different_maintainers() {
+        let mut rng = thread_rng();
+        let maintainers = get_maintainers(&mut rng);
+        let mut expected = ChocolateyMetadata::default();
+        expected.maintainers = maintainers.iter().map(|m| m.to_string()).collect();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_maintainers(&["Test Maint 1", "Test Maint 2"]);
+
+        let mut actual = expected.clone();
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_set_expected_summary() {
+        let mut rng = thread_rng();
+        let summary = get_rand_alphanum(&mut rng, 50);
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        expected.summary = Some(summary.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.summary = summary;
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_set_empty_summary() {
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::default();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_replace_existing_summary() {
+        let mut rng = thread_rng();
+        let summary = get_rand_alphanum(&mut rng, 50);
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        expected.summary = Some(summary);
+        let mut pkg = PackageMetadata::default();
+        pkg.summary = get_rand_alphanum(&mut rng, 40);
+        pkg.maintainers.clear();
+
+        let mut actual = expected.clone();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_summary() {
+        let mut rng = thread_rng();
+        let summary = get_rand_alphanum(&mut rng, 50);
+        let expected = ChocolateyMetadata::default();
+        let mut pkg = PackageMetadata::default();
+        pkg.summary = summary.clone();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.summary = Some(summary);
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_not_remove_different_summary() {
+        let mut rng = thread_rng();
+        let mut expected = ChocolateyMetadata::default();
+        expected.summary = Some(get_rand_alphanum(&mut rng, 40));
+        let mut pkg = PackageMetadata::default();
+        pkg.summary = get_rand_alphanum(&mut rng, 20);
+        pkg.maintainers.clear();
+
+        let mut actual = expected.clone();
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_set_expected_project_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_project_url(url);
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_replace_existing_project_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_project_url("https://test-replace.not");
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.project_url = Some(url.clone());
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_project_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let expected = ChocolateyMetadata::default();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_project_url(url);
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.project_url = Some(url.clone());
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_not_remove_different_project_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_project_url("https://test-replace.not");
+        pkg.maintainers.clear();
+
+        let mut actual = expected.clone();
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_set_expected_project_source_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        expected.project_source_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_project_source_url(url).unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_replace_existing_project_source_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_source_url = Some(url.clone());
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_project_source_url("https://test-replace.not")
+            .unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.project_source_url = Some(url.clone());
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_project_source_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let expected = ChocolateyMetadata::default();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_project_source_url(url).unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.project_source_url = Some(url.clone());
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_not_remove_different_project_source_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_source_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_project_source_url("https://test-replace.not")
+            .unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = expected.clone();
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_set_expected_package_source_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        expected.package_source_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_package_source_url(url).unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_replace_existing_package_source_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.package_source_url = Some(url.clone());
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_package_source_url("https://test-replace.not")
+            .unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.package_source_url = Some(url.clone());
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_package_source_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let expected = ChocolateyMetadata::default();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_package_source_url(url).unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.package_source_url = Some(url.clone());
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_not_remove_different_package_source_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.package_source_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_package_source_url("https://test-replace.not")
+            .unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = expected.clone();
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_set_expected_license_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        expected.license_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license(url);
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_replace_existing_license_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.license_url = Some(url.clone());
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license("https://test-replace.not");
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.license_url = Some(url.clone());
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_license_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let expected = ChocolateyMetadata::default();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license(url);
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.license_url = Some(url.clone());
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_not_remove_different_license_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.license_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license("https://test-replace.not");
+        pkg.maintainers.clear();
+
+        let mut actual = expected.clone();
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_set_expected_license_expression() {
+        let mut rng = thread_rng();
+        let spdix = *SPDIXES.choose(&mut rng).unwrap();
+        let url = Url::parse(
+            LicenseType::Expression(spdix.to_string())
+                .license_url()
+                .unwrap(),
+        )
+        .unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        expected.license_url = Some(url);
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license(spdix);
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_set_license_on_unsupported_expression() {
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license("invalid-spdix");
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_replace_existing_license_expression() {
+        let mut rng = thread_rng();
+        let spdix = *SPDIXES.choose(&mut rng).unwrap();
+        let url = Url::parse(
+            LicenseType::Expression(spdix.to_string())
+                .license_url()
+                .unwrap(),
+        )
+        .unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.license_url = Some(url.clone());
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license(spdix);
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.license_url = Some(url);
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_license_expression() {
+        let mut rng = thread_rng();
+        let spdix = *SPDIXES.choose(&mut rng).unwrap();
+        let url = Url::parse(
+            LicenseType::Expression(spdix.to_string())
+                .license_url()
+                .unwrap(),
+        )
+        .unwrap();
+        let expected = ChocolateyMetadata::default();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license(spdix);
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.license_url = Some(url);
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_not_remove_different_license_expression() {
+        let mut rng = thread_rng();
+        let spdix = *SPDIXES.choose(&mut rng).unwrap();
+        let url = crate::defaults::url();
+        let mut expected = ChocolateyMetadata::default();
+        expected.license_url = Some(url);
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license(spdix);
+        pkg.maintainers.clear();
+
+        let mut actual = expected.clone();
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_set_expected_license_expression_and_location() {
+        let mut rng = thread_rng();
+        let spdix = *SPDIXES.choose(&mut rng).unwrap();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        expected.license_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license((spdix, url));
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_replace_existing_license_expression_and_location() {
+        let mut rng = thread_rng();
+        let spdix = *SPDIXES.choose(&mut rng).unwrap();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.license_url = Some(url.clone());
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license((spdix, url));
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.license_url = Some(url.clone());
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_license_expression_and_location() {
+        let mut rng = thread_rng();
+        let spdix = *SPDIXES.choose(&mut rng).unwrap();
+        let url = URLS.choose(&mut rng).unwrap();
+        let expected = ChocolateyMetadata::default();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license((spdix, url));
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.license_url = Some(url.clone());
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_not_remove_different_license_expression_and_location() {
+        let mut rng = thread_rng();
+        let spdix = *SPDIXES.choose(&mut rng).unwrap();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.license_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_license((spdix, url));
+        pkg.maintainers.clear();
+
+        let mut actual = expected.clone();
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
     }
 }

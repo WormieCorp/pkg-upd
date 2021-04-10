@@ -9,7 +9,7 @@ pub use url::Url;
 
 pub use crate::metadata::{Description, PackageMetadata};
 pub use crate::updater::PackageUpdateData;
-pub use crate::PackageData;
+pub use crate::{DataUpdater, PackageData};
 
 /// Re-Exports of usable chocolatey types.
 #[cfg(feature = "chocolatey")]
