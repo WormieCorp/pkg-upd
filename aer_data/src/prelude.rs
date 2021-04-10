@@ -1,6 +1,8 @@
 // Copyright (c) 2021 Kim J. Nordmo and WormieCorp.
 // Licensed under the MIT license. See LICENSE.txt file in the project
 
+//! Exports all public structures and traits for easier usage.
+
 pub use aer_license::LicenseType;
 pub use aer_version::{FixVersion, SemVersion, Versions};
 pub use url::Url;

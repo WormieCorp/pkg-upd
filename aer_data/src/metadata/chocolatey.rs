@@ -386,7 +386,7 @@ impl Default for ChocolateyMetadata {
     ///   by default to `true`
     fn default() -> ChocolateyMetadata {
         ChocolateyMetadata {
-            lowercase_id: crate::defaults::boolean_true(),
+            lowercase_id: true,
             id: Default::default(),
             maintainers: crate::defaults::maintainer(),
             summary: None,
@@ -399,7 +399,7 @@ impl Default for ChocolateyMetadata {
             version: crate::defaults::empty_version(),
             authors: vec![],
             description: Description::None,
-            require_license_acceptance: crate::defaults::boolean_true(),
+            require_license_acceptance: true,
             documentation_url: None,
             issues_url: None,
             tags: vec![],

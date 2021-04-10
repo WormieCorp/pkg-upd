@@ -28,9 +28,10 @@
 //! """
 //! ```
 
+#![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod defaults;
+pub mod defaults;
 pub mod metadata;
 pub mod prelude;
 pub mod updater;
@@ -52,7 +53,7 @@ pub struct PackageData {
 }
 
 impl PackageData {
-    // Creates a new instance of a structure holding user data.
+    /// Creates a new instance of a structure holding package data.
     pub fn new(id: &str) -> PackageData {
         PackageData {
             metadata: metadata::PackageMetadata::new(id),
