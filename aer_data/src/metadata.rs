@@ -50,6 +50,7 @@ impl PartialEq<str> for Description {
 #[non_exhaustive]
 pub struct PackageMetadata {
     package_source_url: Option<Url>,
+    icon_url: Option<Url>,
     /// The identifier of the package
     id: String,
 
@@ -118,6 +119,7 @@ impl PackageMetadata {
     pub fn new<T: AsRef<str>>(id: T) -> PackageMetadata {
         PackageMetadata {
             package_source_url: None,
+            icon_url: None,
             id: id.as_ref().to_string(),
             maintainers: crate::defaults::maintainer(),
             summary: String::new(),
@@ -167,6 +169,13 @@ impl PackageMetadata {
         } else {
             Cow::Owned(crate::defaults::url())
         }
+    }
+
+    /// The direct url to the icon of the software.
+    /// Typically hosted in a repository, and linked to with jsdelivr, rawhack,
+    /// etc.
+    pub fn icon_url(&self) -> &Option<Url> {
+        &self.icon_url
     }
 
     /// Returns the url to the landing page of the software.
@@ -225,6 +234,13 @@ impl PackageMetadata {
         Ok(())
     }
 
+    /// Allows setting the url to the software icon for this package.
+    /// Will return [url::ParseError] if the specified url is not a url.
+    pub fn set_icon_url<U: AsRef<str>>(&mut self, url: U) -> Result<(), url::ParseError> {
+        self.icon_url = Some(Url::parse(url.as_ref())?);
+        Ok(())
+    }
+
     /// Allows setting the url to the project (usually the home page of the
     /// software). Will return [url::ParseError] if the specified url is not
     /// a url.
@@ -271,6 +287,7 @@ mod tests {
     fn new_should_create_default_metadata_with_expected_values() {
         let expected = PackageMetadata {
             package_source_url: None,
+            icon_url: None,
             id: "test-package".to_owned(),
             maintainers: crate::defaults::maintainer(),
             project_url: crate::defaults::url(),

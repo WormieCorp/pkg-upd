@@ -88,6 +88,20 @@ impl Display for Versions {
     }
 }
 
+impl From<SemVersion> for Versions {
+    fn from(version: SemVersion) -> Versions {
+        Versions::SemVer(version)
+    }
+}
+
+#[cfg(feature = "chocolatey")]
+#[cfg_attr(docsrs, doc(cfg(feature = "chocolatey")))]
+impl From<chocolatey::ChocoVersion> for Versions {
+    fn from(version: chocolatey::ChocoVersion) -> Versions {
+        Versions::Choco(version)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;

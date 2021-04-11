@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
+use aer_version::chocolatey::ChocoVersion;
 use aer_version::Versions;
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
@@ -113,6 +114,15 @@ pub struct ChocolateyMetadata {
     /// [package metadata struct]: PackageMetadata
     pub package_source_url: Option<Url>,
 
+    /// The direct url to the icon of the software.
+    /// Typically hosted in a repository, and linked to with jsdelivr, rawhack,
+    /// etc.
+    pub icon_url: Option<Url>,
+
+    /// The url to the mailing list of the software, this can also be a link to
+    /// the forum of the software.
+    pub mailing_list_url: Option<Url>,
+
     /// The full url to the license of the software. The location should be a
     /// public place where the license can be viewed without the need to
     /// download it.
@@ -168,7 +178,7 @@ pub struct ChocolateyMetadata {
     pub release_notes: Option<String>,
 
     #[cfg_attr(feature = "serialize", serde(default))]
-    dependencies: HashMap<String, Versions>,
+    dependencies: HashMap<String, Option<ChocoVersion>>,
 
     #[cfg_attr(feature = "serialize", serde(default))]
     files: HashMap<PathBuf, String>,
@@ -244,7 +254,7 @@ impl ChocolateyMetadata {
     /// installed when chocolatey installs the package. This is required by
     /// us to both specify the identifier of the dependency, and a minimum
     /// version.
-    pub fn dependencies(&self) -> &HashMap<String, Versions> {
+    pub fn dependencies(&self) -> &HashMap<String, Option<ChocoVersion>> {
         &self.dependencies
     }
 
@@ -315,7 +325,7 @@ impl ChocolateyMetadata {
         // TODO: Change version.as_ref() to version when dependency is updated
         self.dependencies.insert(
             id.as_ref().into(),
-            Versions::parse(version.as_ref()).unwrap(),
+            ChocoVersion::parse(version.as_ref()).ok(),
         );
     }
 
@@ -415,6 +425,8 @@ impl Default for ChocolateyMetadata {
             project_url: None,
             project_source_url: None,
             package_source_url: None,
+            icon_url: None,
+            mailing_list_url: None,
             license_url: None,
             title: None,
             copyright: None,
@@ -453,6 +465,8 @@ impl DataUpdater<PackageMetadata> for ChocolateyMetadata {
     ///   empty with the values from [PackageMetadata::project_source_url].
     /// - Update the [package_source_url][Self::package_source_url] if it is
     ///   empty with the values from [PackageMetadata::package_source_url].
+    /// - Update the [icon_url][Self::icon_url] if it is empty with the values
+    ///   from [PackageMetadata::icon_url].
     /// - Update the [license_url][Self::license_url] if it is empty with the
     ///   values from [PackageMetadata]::license_url. This will only be
     ///   automatically set if the global metadata also have a url specified, or
@@ -485,6 +499,10 @@ impl DataUpdater<PackageMetadata> for ChocolateyMetadata {
             self.package_source_url = from.package_source_url.clone();
         }
 
+        if self.icon_url.is_none() {
+            self.icon_url = from.icon_url.clone();
+        }
+
         if self.license_url.is_none() {
             if let Some(license) = from.license().license_url() {
                 self.license_url = Some(Url::parse(license).unwrap());
@@ -514,6 +532,8 @@ impl DataUpdater<PackageMetadata> for ChocolateyMetadata {
     ///   same as the global [PackageMetadata::project_source_url] variable.
     /// - Remove the [package_source_url][Self::package_source_url] if it is the
     ///   same as the global [PackageMetadata::package_source_url] variable.
+    /// - Remove the [icon_url][Self::icon_url] if it is the same as the global
+    ///   [PackageMetadata::icon_url] variable.
     /// - Remove the [license_url][Self::license_url] if it is the same as the
     ///   global [PackageMetadata::license] variable.
     /// - Remove the tag matching the automatically generated identifier.
@@ -549,6 +569,14 @@ impl DataUpdater<PackageMetadata> for ChocolateyMetadata {
         if let Some(ref url) = self.package_source_url {
             if url == from.package_source_url().as_ref() {
                 self.package_source_url = None;
+            }
+        }
+
+        if let Some(ref url) = self.icon_url {
+            if let Some(ref global_url) = from.icon_url() {
+                if url == global_url {
+                    self.icon_url = None;
+                }
             }
         }
 
@@ -661,6 +689,8 @@ mod tests {
             project_url: None,
             project_source_url: None,
             package_source_url: None,
+            icon_url: None,
+            mailing_list_url: None,
             license_url: None,
             title: None,
             copyright: None,
@@ -1169,6 +1199,75 @@ mod tests {
         expected.package_source_url = Some(url.clone());
         let mut pkg = PackageMetadata::default();
         pkg.set_package_source_url("https://test-replace.not")
+            .unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = expected.clone();
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_set_expected_icon_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.project_url = Some(crate::defaults::url());
+        expected.icon_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_icon_url(url).unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn update_from_should_not_replace_existing_icon_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.icon_url = Some(url.clone());
+        expected.project_url = Some(crate::defaults::url());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_icon_url("https://test-replace.not/icon.png")
+            .unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.icon_url = Some(url.clone());
+        actual.update_from(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_remove_same_icon_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let expected = ChocolateyMetadata::default();
+        let mut pkg = PackageMetadata::default();
+        pkg.set_icon_url(url).unwrap();
+        pkg.maintainers.clear();
+
+        let mut actual = ChocolateyMetadata::default();
+        actual.icon_url = Some(url.clone());
+        actual.reset_same(pkg);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn reset_same_should_not_remove_different_icon_url() {
+        let mut rng = thread_rng();
+        let url = URLS.choose(&mut rng).unwrap();
+        let mut expected = ChocolateyMetadata::default();
+        expected.icon_url = Some(url.clone());
+        let mut pkg = PackageMetadata::default();
+        pkg.set_icon_url("https://test-replace.not/icon.png")
             .unwrap();
         pkg.maintainers.clear();
 

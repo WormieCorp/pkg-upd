@@ -5,8 +5,9 @@ authors = ["AdmiringWorm <kim.nordmo@gmail.com>"]
 edition = "2018"
 
 [features]
-default = ["powershell", "toml_data"]
-toml_data = ["aer_data/chocolatey", "toml", "aer_data/serialize"]
+default = ["powershell", "toml_data", "chocolatey"]
+chocolatey = ["aer_data/chocolatey", "xml-rs"]
+toml_data = ["toml", "aer_data/serialize"]
 powershell = ["aer_data/serialize", "lazy_static", "serde_json", "serde"]
 
 [dependencies]
@@ -17,8 +18,11 @@ log = "0.4.14"
 serde = { version = "1.0.125", optional = true }
 serde_json = { version = "1.0.64", optional = true }
 toml = { version = "0.5.8", optional = true }
+xml-rs = { version = "0.8.3", optional = true }
 
 [dev-dependencies]
+assert_fs = "1.0.1"
+predicates = "1.0.7"
 rstest = "0.7.0"
 
 [package.metadata.docs.rs]
