@@ -19,7 +19,7 @@ url = "2.2.1"
 whoami = "1.1.2"
 
 [dev-dependencies]
-rstest = "0.7.0"
+rstest = "0.9.0"
 
 [package.metadata.docs.rs]
 all-features = true
