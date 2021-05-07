@@ -11,7 +11,7 @@ serialize = ["serde", "url/serde"]
 [dependencies]
 license = "1.1.10"
 serde = { version = "1.0.125", optional = true }
-url = "2.2.1"
+url = "2.2.2"
 
 [dev-dependencies]
 rstest = "0.9.0"
