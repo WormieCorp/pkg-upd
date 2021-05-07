@@ -3,7 +3,8 @@ id = "astyle"
 maintainers = ["AdmiringWorm", "yying"]
 summary = "Artistic Style is a source code indenter, formater, and beutifier for the C, C++, C++/CLI, Objective-C, C# and Java programming languages."
 project_url = "http://astyle.sourceforge.net/"
-project_source_url = "https://github.com/AdmiringWorm/chocolatey-packages/tree/master/astyle"
+project_source_url = "https://sourceforge.net/p/astyle/code/HEAD/tree/"
+package_source_url = "https://github.com/AdmiringWorm/chocolatey-packages/tree/master/astyle"
 license = { expression = "MIT", url = "https://sourceforge.net/p/astyle/code/HEAD/tree/trunk/AStyle/LICENSE.md" }
 
 [metadata.chocolatey]

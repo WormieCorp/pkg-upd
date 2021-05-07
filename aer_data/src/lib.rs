@@ -28,9 +28,10 @@
 //! """
 //! ```
 
+#![deny(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-mod defaults;
+pub mod defaults;
 pub mod metadata;
 pub mod prelude;
 pub mod updater;
@@ -52,7 +53,7 @@ pub struct PackageData {
 }
 
 impl PackageData {
-    // Creates a new instance of a structure holding user data.
+    /// Creates a new instance of a structure holding package data.
     pub fn new(id: &str) -> PackageData {
         PackageData {
             metadata: metadata::PackageMetadata::new(id),
@@ -80,6 +81,17 @@ impl PackageData {
     pub fn updater_mut(&mut self) -> &mut updater::PackageUpdateData {
         &mut self.updater
     }
+}
+
+/// Implements a trait to use by updating necessary data
+/// to a package specific handler.
+pub trait DataUpdater<T> {
+    /// Updates the current data with the data in the specified from argument.
+    fn update_from<R: AsRef<T>>(&mut self, from: R);
+
+    /// Resets the current data by comparing it with the data in the specified
+    /// argument.
+    fn reset_same<R: AsRef<T>>(&mut self, from: R);
 }
 
 #[cfg(test)]

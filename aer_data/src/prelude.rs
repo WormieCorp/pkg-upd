@@ -1,13 +1,15 @@
 // Copyright (c) 2021 Kim J. Nordmo and WormieCorp.
 // Licensed under the MIT license. See LICENSE.txt file in the project
 
+//! Exports all public structures and traits for easier usage.
+
 pub use aer_license::LicenseType;
 pub use aer_version::{FixVersion, SemVersion, Versions};
 pub use url::Url;
 
 pub use crate::metadata::{Description, PackageMetadata};
 pub use crate::updater::PackageUpdateData;
-pub use crate::PackageData;
+pub use crate::{DataUpdater, PackageData};
 
 /// Re-Exports of usable chocolatey types.
 #[cfg(feature = "chocolatey")]

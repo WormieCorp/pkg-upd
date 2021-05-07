@@ -1,6 +1,9 @@
 // Copyright (c) 2021 Kim J. Nordmo and WormieCorp.
 // Licensed under the MIT license. See LICENSE.txt file in the project
 
+//! Contains structure and logic related to storing and updating global
+//! metadata.
+
 #[cfg(feature = "chocolatey")]
 pub mod chocolatey;
 
@@ -13,15 +16,25 @@ use aer_license::LicenseType;
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+/// Defines the description of a software.
+/// This can be the embedded text, or a location to the text itself.
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Deserialize, Serialize), serde(untagged))]
 pub enum Description {
+    /// No description is specified.
     None,
+    /// The location to the description (usually markdown) that should be read
+    /// when creating a package.
     Location {
+        /// The path to the file that includes the description.
         from: PathBuf,
+        /// The amount of lines to skip until the description starts.
         skip_start: u16,
+        /// The amount of lines to ignore at the end of the file that should not
+        /// be part of the description.
         skip_end: u16,
     },
+    /// The embedded description of the software
     Text(String),
 }
 
@@ -36,6 +49,8 @@ impl PartialEq<str> for Description {
 #[cfg_attr(feature = "serialize", derive(Deserialize, Serialize))]
 #[non_exhaustive]
 pub struct PackageMetadata {
+    package_source_url: Option<Url>,
+    icon_url: Option<Url>,
     /// The identifier of the package
     id: String,
 
@@ -49,6 +64,11 @@ pub struct PackageMetadata {
 
     /// The main endpoint (homepage) of the software.
     project_url: Url,
+
+    /// The location where the source of the software is hosted. Can be a
+    /// repository, or potentially a url to the location were source archives
+    /// can be downloaded (not a direct url).
+    project_source_url: Option<Url>,
 
     /// The type of the license, this can be either a supported expression (Like
     /// `MIT`, `GPL`, etc.) or an url the location of the license.
@@ -96,12 +116,15 @@ pub struct PackageMetadata {
 impl PackageMetadata {
     /// Creates a new instance of the package metadata with the specified
     /// identifier.
-    pub fn new(id: &str) -> PackageMetadata {
+    pub fn new<T: AsRef<str>>(id: T) -> PackageMetadata {
         PackageMetadata {
-            id: id.to_owned(),
+            package_source_url: None,
+            icon_url: None,
+            id: id.as_ref().to_string(),
             maintainers: crate::defaults::maintainer(),
             summary: String::new(),
-            project_url: Url::parse("https://example-repo.org").unwrap(),
+            project_url: crate::defaults::url(),
+            project_source_url: None,
             license: LicenseType::None,
             #[cfg(feature = "chocolatey")]
             chocolatey: None,
@@ -137,9 +160,44 @@ impl PackageMetadata {
         self.maintainers.as_slice()
     }
 
+    /// The remote url where the source of packages are located (usually the
+    /// location of the package data file).
+    /// _Returns [crate::defaults::url] if no package source url is defined_
+    pub fn package_source_url(&self) -> Cow<Url> {
+        if let Some(ref url) = self.package_source_url {
+            Cow::Borrowed(url)
+        } else {
+            Cow::Owned(crate::defaults::url())
+        }
+    }
+
+    /// The direct url to the icon of the software.
+    /// Typically hosted in a repository, and linked to with jsdelivr, rawhack,
+    /// etc.
+    pub fn icon_url(&self) -> &Option<Url> {
+        &self.icon_url
+    }
+
     /// Returns the url to the landing page of the software.
     pub fn project_url(&self) -> &Url {
         &self.project_url
+    }
+
+    /// Wether the project source url has been set or not.
+    pub fn has_project_source_url(&self) -> bool {
+        self.project_source_url.is_some()
+    }
+
+    /// The location where the source of the software is hosted. Can be a
+    /// repository, or potentially a url to the location were source archives
+    /// can be downloaded (not a direct url).
+    /// _Returns [crate::defaults::url] if no package source url is defined_
+    pub fn project_source_url(&self) -> Cow<Url> {
+        if let Some(ref url) = self.project_source_url {
+            Cow::Borrowed(url)
+        } else {
+            Cow::Owned(crate::defaults::url())
+        }
     }
 
     /// Returns the license of the current software.
@@ -151,10 +209,11 @@ impl PackageMetadata {
     /// with the current metadata instance.
     #[cfg(feature = "chocolatey")]
     #[cfg_attr(docsrs, doc(cfg(feature = "chocolatey")))]
-    pub fn set_chocolatey(&mut self, choco: chocolatey::ChocolateyMetadata) {
-        self.chocolatey = Some(choco);
+    pub fn set_chocolatey<C: Into<chocolatey::ChocolateyMetadata>>(&mut self, choco: C) {
+        self.chocolatey = Some(choco.into());
     }
 
+    /// Allows setting the maintainers of the packages for this software.
     pub fn set_maintainers<T>(&mut self, vals: &[T])
     where
         T: Display,
@@ -168,19 +227,55 @@ impl PackageMetadata {
         self.maintainers = maintainers;
     }
 
-    pub fn set_project_url(&mut self, url: &str) {
-        let url = Url::parse(url).unwrap(); // We want a failure here to abort the program
+    /// Allows setting the url to the package source for this package.
+    /// Will return [url::ParseError] if the specified url is not a url.
+    pub fn set_package_source_url<U: AsRef<str>>(&mut self, url: U) -> Result<(), url::ParseError> {
+        self.package_source_url = Some(Url::parse(url.as_ref())?);
+        Ok(())
+    }
+
+    /// Allows setting the url to the software icon for this package.
+    /// Will return [url::ParseError] if the specified url is not a url.
+    pub fn set_icon_url<U: AsRef<str>>(&mut self, url: U) -> Result<(), url::ParseError> {
+        self.icon_url = Some(Url::parse(url.as_ref())?);
+        Ok(())
+    }
+
+    /// Allows setting the url to the project (usually the home page of the
+    /// software). Will return [url::ParseError] if the specified url is not
+    /// a url.
+    pub fn set_project_url<U: AsRef<str>>(&mut self, url: U) {
+        let url = Url::parse(url.as_ref()).unwrap(); // We want a failure here to abort the program
         self.project_url = url;
     }
 
-    pub fn set_license(&mut self, license: LicenseType) {
-        self.license = license;
+    /// Allows setting the url to the project source (usually this is a url to
+    /// the repository hosting the source, but can also be the location where
+    /// sources can be downloaded). Will return [url::ParseError] if the
+    /// specified url is not a url.
+    pub fn set_project_source_url<U: AsRef<str>>(&mut self, url: U) -> Result<(), url::ParseError> {
+        self.project_source_url = Some(Url::parse(url.as_ref())?);
+        Ok(())
+    }
+
+    /// Allows setting the license of the software, this can be either an
+    /// expression or a url (or even both). Do note that some package
+    /// managers may only accept either an expression, or an url so setting both
+    /// is recommended.
+    pub fn set_license<L: Into<LicenseType>>(&mut self, license: L) {
+        self.license = license.into();
     }
 }
 
 impl Default for PackageMetadata {
     fn default() -> PackageMetadata {
         PackageMetadata::new("")
+    }
+}
+
+impl AsRef<PackageMetadata> for PackageMetadata {
+    fn as_ref(&self) -> &PackageMetadata {
+        self
     }
 }
 
@@ -191,9 +286,12 @@ mod tests {
     #[test]
     fn new_should_create_default_metadata_with_expected_values() {
         let expected = PackageMetadata {
+            package_source_url: None,
+            icon_url: None,
             id: "test-package".to_owned(),
             maintainers: crate::defaults::maintainer(),
-            project_url: Url::parse("https://example-repo.org").unwrap(),
+            project_url: crate::defaults::url(),
+            project_source_url: None,
             license: LicenseType::None,
             summary: String::new(),
             #[cfg(feature = "chocolatey")]

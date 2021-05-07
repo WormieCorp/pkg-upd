@@ -274,6 +274,14 @@ mod tests {
                                 for the C, C++, C++/CLI, Objective-C, C# and Java programming \
                                 languages."
                 .into();
+            metadata
+                .set_project_source_url("https://sourceforge.net/p/astyle/code/HEAD/tree/")
+                .unwrap();
+            metadata
+                .set_package_source_url(
+                    "https://github.com/AdmiringWorm/chocolatey-packages/tree/master/astyle",
+                )
+                .unwrap();
             metadata.set_chocolatey({
                 let mut choco = ChocolateyMetadata::with_authors(&["Jim Pattee", "Tal Davidson"]);
                 choco.set_description(Description::Location {

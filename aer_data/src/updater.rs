@@ -1,13 +1,19 @@
 // Copyright (c) 2021 Kim J. Nordmo and WormieCorp.
 // Licensed under the MIT license. See LICENSE.txt file in the project
 
+//! The data stored that can be used by different package manager updaters.
+
 pub mod chocolatey;
 
+#[cfg(feature = "chocolatey")]
 use std::borrow::Cow;
 
 #[cfg(feature = "serialize")]
 use serde::{Deserialize, Serialize};
 
+/// Collection of different package managers that will be used when updating
+/// packages (when possible). Additionally, plans for adding hooks/scripts are
+/// in the works.
 #[derive(Debug, Default, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Deserialize, Serialize))]
 #[non_exhaustive]
@@ -18,11 +24,10 @@ pub struct PackageUpdateData {
 }
 
 impl PackageUpdateData {
+    /// Creates a new instance of the [PackageUpdateData] struct with the values
+    /// set to default.
     pub fn new() -> PackageUpdateData {
-        PackageUpdateData {
-            #[cfg(feature = "chocolatey")]
-            chocolatey: None,
-        }
+        PackageUpdateData::default()
     }
 
     /// Returns wether data regarding chocolatey is already set for the updater.
@@ -52,11 +57,10 @@ impl PackageUpdateData {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "chocolatey"))]
 mod tests {
     use super::*;
 
-    #[cfg(feature = "chocolatey")]
     #[test]
     fn should_get_set_chocolatey_data() {
         let mut expected = chocolatey::ChocolateyUpdaterData::new();
@@ -69,7 +73,6 @@ mod tests {
         assert_eq!(data.chocolatey(), Cow::Owned(expected));
     }
 
-    #[cfg(feature = "chocolatey")]
     #[test]
     fn should_return_default_chocolatey() {
         let expected = chocolatey::ChocolateyUpdaterData::new();
