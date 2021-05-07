@@ -625,9 +625,9 @@ dependencies = [
 
 [[package]]
 name = "human_bytes"
-version = "0.2.1"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e291962efb61d1f7eba1e9cf6ef76130ee31e26ee9052c9eb10df2866388b47"
+checksum = "dc178557b4a227ff4d9c51fbbf17f29607c32a96be106c97bb8499e075db0de2"
 
 [[package]]
 name = "hyper"
