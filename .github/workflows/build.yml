@@ -16,7 +16,7 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install latest stable
         id: toolchain
         uses: actions-rs/toolchain@v1
@@ -51,7 +51,7 @@ jobs:
         features: [all, human, none]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install latest nightly
         id: toolchain
         uses: actions-rs/toolchain@v1
